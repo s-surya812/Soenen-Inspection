@@ -19,6 +19,23 @@ let pdfFile = null;
 let lastExtractedText = "";
 let parsedHeader = {}; // will hold partNumber, revision, hand, fsmLength, rootWidth, KBPC specs etc
 let parsedTableRows = []; // best-effort rows from main inspection table
+// -------------------- Update Header Fields --------------------
+function updateHeaderFields(parsedHeader) {
+  const partInfoElement = document.getElementById("partInfo");
+
+  if (!parsedHeader) return;
+
+  const partNumber = parsedHeader.partNumber || "—";
+  const revision = parsedHeader.revision || "—";
+  const hand = parsedHeader.hand || "—";
+  const fsmLength = parsedHeader.fsmLength || "—";
+
+  partInfoElement.innerHTML = `
+    PART NUMBER / LEVEL / HAND : ${partNumber} / ${revision} / ${hand}
+    &nbsp;&nbsp; | &nbsp;&nbsp;
+    FSM LENGTH : ${fsmLength} mm
+  `;
+}
 
 /* ---------- File load & preview ---------- */
 fileInput.addEventListener("change", async (e) => {
@@ -45,6 +62,8 @@ extractBtn.addEventListener("click", async () => {
     const hdr = parseHeader(text);
     parsedHeader = hdr;
     headerOut.textContent = JSON.stringify(hdr, null, 2);
+    updateHeaderFields(parsedHeader);
+
     // attempt to parse main table as rows:
     parsedTableRows = detectTableLines(text);
     generateFormBtn.disabled = false;
