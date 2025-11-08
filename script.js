@@ -326,6 +326,18 @@ rwcol.appendChild(rootSpec);
 rwcol.appendChild(document.createTextNode(" "));
 rwcol.appendChild(rootAct);
 
+// store Root Width Act reference for later
+const rootActSpan = document.createElement("span");
+rootActSpan.id = "rootActRef"; // used by flange section
+rootActSpan.style.display = "none";
+rootActSpan.textContent = ""; // will mirror value
+rwcol.appendChild(rootActSpan);
+
+// keep rootAct value synced
+rootAct.addEventListener("input", () => {
+  rootActSpan.textContent = rootAct.value;
+});
+
 // FSM LENGTH BLOCK
 const fsmcol = document.createElement("div");
 fsmcol.className = "col";
