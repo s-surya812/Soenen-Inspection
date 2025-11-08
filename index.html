@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Soenen Inspection – PDF Extractor (Phase 1)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Soenen Inspection – Phase 1 (PDF Upload & Extract)</h1>
+    <p>Upload your inspection PDF (e.g. FH115013_…). This tool previews the PDF and extracts text for verification.</p>
+  </header>
+
+  <main>
+    <section id="controls">
+      <input id="fileInput" type="file" accept="application/pdf" />
+      <button id="extractBtn">Extract Text &amp; Parse</button>
+    </section>
+
+    <section id="preview">
+      <h2>PDF Preview</h2>
+      <div id="pdfViewer">No PDF loaded.</div>
+    </section>
+
+    <section id="results">
+      <h2>Parsed Header</h2>
+      <pre id="headerOut">No header parsed yet.</pre>
+
+      <h2>Raw Extracted Text (First 200 Lines)</h2>
+      <pre id="rawText">No text yet.</pre>
+
+      <h2>Detected Table Lines</h2>
+      <div id="tablePreview">No table lines detected yet.</div>
+    </section>
+  </main>
+
+  <!-- pdf.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
