@@ -1,6 +1,6 @@
 /* ====== HEADER LAYOUT ====== */
 header.sheet-header {
-  position: sticky;       /* Keeps header visible on scroll */
+  position: sticky;
   top: 0;
   z-index: 1000;
   display: flex;
@@ -9,21 +9,6 @@ header.sheet-header {
   border-bottom: 2px solid #000;
   padding: 8px 12px;
   background: #fff;
-}
-
-.header-left {
-  flex: 1;
-  text-align: left;
-}
-
-.header-center {
-  flex: 2;
-  text-align: center;
-}
-
-.header-right {
-  flex: 1;
-  text-align: right;
 }
 
 .header-left img {
@@ -61,10 +46,6 @@ header.sheet-header {
 }
 
 /* ====== GLOBAL RESETS ====== */
-* {
-  box-sizing: border-box;
-}
-
 body {
   font-family: var(--font);
   margin: 0;
@@ -114,7 +95,7 @@ main {
   background: #f7f7f7;
 }
 
-/* ====== FORM LAYOUT (CLEANED & MERGED) ====== */
+/* ====== FORM STYLING ====== */
 .form-row {
   display: flex;
   flex-wrap: wrap;
@@ -130,36 +111,26 @@ main {
   vertical-align: top;
 }
 
-.form-row .col input.input-small {
-  display: inline-block;
-  margin: 2px 4px;
-  width: auto;
-  min-width: 80px;
+.input-small {
+  padding: 4px;
+  border: 1px solid #888;
+  border-radius: 3px;
 }
 
-/* Compact Spec/Act alignment */
-#kbSpec,
-#kbAct,
-#pcSpec,
-#pcAct,
-#rootSpec,
-#rootAct,
-#fsmSpec,
-#fsmAct {
+#kbSpec, #kbAct, #pcSpec, #pcAct,
+#rootSpec, #rootAct, #fsmSpec, #fsmAct {
   width: 100px !important;
   display: inline-block !important;
   vertical-align: middle;
 }
 
-/* Table styling */
 .table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 8px;
 }
 
-.table th,
-.table td {
+.table th, .table td {
   border: 1px solid #000;
   padding: 6px;
   text-align: center;
@@ -171,14 +142,6 @@ main {
   font-weight: 700;
 }
 
-/* Text inputs */
-.input-small {
-  padding: 4px;
-  border: 1px solid #888;
-  border-radius: 3px;
-}
-
-/* Remarks */
 #remarks {
   width: 100%;
   min-height: 80px;
@@ -213,11 +176,6 @@ main {
   font-weight: 600;
 }
 
-.warn-cell {
-  color: var(--warn);
-  background-color: var(--warn-fill);
-  font-weight: 600;
-}
 #rootSpec,
 #rootAct,
 #rootAct_flange {
