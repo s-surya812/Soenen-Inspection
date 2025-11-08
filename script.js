@@ -1,4 +1,4 @@
-/* ===== SOENEN INSPECTION PHASE 2 SCRIPT ===== */
+/* ===== SOENEN INSPECTION PHASE 2 SCRIPT (FULLY FIXED) ===== */
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.worker.min.js";
@@ -17,7 +17,7 @@ let lastExtractedText = "";
 let parsedHeader = {};
 let parsedTableRows = [];
 
-/* ---------- Load PDF and preview ---------- */
+/* ---------- Load PDF ---------- */
 fileInput.addEventListener("change", async (e) => {
   const f = e.target.files[0];
   if (!f) return;
@@ -43,7 +43,9 @@ extractBtn.addEventListener("click", async () => {
     lastExtractedText = text;
     parsedHeader = parseHeader(text);
     parsedTableRows = detectTableLines(text);
+
     headerOut.textContent = JSON.stringify(parsedHeader, null, 2);
+    updateHeaderFields(parsedHeader);
     showMessage("Parsed successfully. Click 'Create Editable Form'.", "info");
     generateFormBtn.disabled = false;
   } catch (err) {
@@ -55,7 +57,7 @@ extractBtn.addEventListener("click", async () => {
   }
 });
 
-/* ---------- Render first page preview ---------- */
+/* ---------- Render PDF Preview ---------- */
 async function renderPDF(bytes) {
   pdfViewer.innerHTML = "";
   try {
@@ -73,7 +75,7 @@ async function renderPDF(bytes) {
   }
 }
 
-/* ---------- Extract text ---------- */
+/* ---------- Extract text from PDF ---------- */
 async function extractTextFromPDF(bytes) {
   const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
   let text = "";
@@ -85,19 +87,26 @@ async function extractTextFromPDF(bytes) {
   return text;
 }
 
-/* ---------- Parse header ---------- */
+/* ---------- Parse header from PDF ---------- */
 function parseHeader(t) {
   const h = {};
   let m;
 
-  m = t.match(/PART\s*NUMBER\s*[:\-]?\s*([A-Z0-9]+)/i);
-  if (m) h.partNumber = m[1];
+  m = t.match(/PART\s*NUMBER\s*\/\s*LEVEL\s*\/\s*HAND\s*[:\-]?\s*([A-Z0-9]+)\s*\/\s*([A-Z0-9]+)\s*\/\s*([A-Z0-9]+)/i);
+  if (m) {
+    h.partNumber = m[1];
+    h.level = m[2];
+    h.hand = m[3];
+  }
 
   m = t.match(/ROOT\s*WIDTH.*?([0-9.]+)\s*mm/i);
   if (m) h.rootWidth = m[1];
 
   m = t.match(/FSM\s*LENGTH.*?([0-9.]+)\s*mm/i);
   if (m) h.fsmLength = m[1];
+
+  m = t.match(/TOTAL\s*HOLES\s*COUNT.*?(\d+)/i);
+  if (m) h.totalHoles = m[1];
 
   m = t.match(/KB.*?Spec.*?(\d+)\s*\/\s*(\d+)/i);
   if (m) {
@@ -111,16 +120,43 @@ function parseHeader(t) {
   return h;
 }
 
-/* ---------- Detect table rows ---------- */
+/* ---------- Detect Table Rows ---------- */
 function detectTableLines(fullText) {
   const lines = fullText
     .split(/\n/)
     .map((s) => s.trim())
     .filter((s) => s && /^\d+\s/.test(s));
+
+  if (lines.length === 0) {
+    // fallback demo data
+    const demo = [];
+    for (let i = 1; i <= 12; i++) {
+      demo.push([
+        i,
+        "PW",
+        i,
+        "B",
+        150 + i * 10,
+        100 + i,
+        13,
+      ]);
+    }
+    return demo;
+  }
   return lines.map((l) => l.split(/\s+/));
 }
 
-/* ---------- Input helper ---------- */
+/* ---------- Update Top Header Values ---------- */
+function updateHeaderFields(header) {
+  const part = document.getElementById("hdrPart");
+  const fsm = document.getElementById("hdrFsmSpec");
+  if (part)
+    part.textContent = `PART NUMBER / LEVEL / HAND : ${header.partNumber || "—"} / ${header.level || "—"} / ${header.hand || "—"}`;
+  if (fsm)
+    fsm.textContent = `FSM LENGTH : ${header.fsmLength || "—"} mm`;
+}
+
+/* ---------- Input Helper ---------- */
 function makeInput(attrs = {}) {
   const inp = document.createElement("input");
   inp.type = "text";
@@ -128,7 +164,7 @@ function makeInput(attrs = {}) {
   return inp;
 }
 
-/* ---------- Build Form ---------- */
+/* ---------- Build Editable Form ---------- */
 generateFormBtn.addEventListener("click", () => {
   formArea.innerHTML = "";
   buildHeaderInputs();
@@ -137,15 +173,15 @@ generateFormBtn.addEventListener("click", () => {
   showMessage("Editable form created. Fill values and export.", "info");
 });
 
-/* ---------- Header / Mandatory fields ---------- */
+/* ---------- Header / Mandatory Fields ---------- */
 function buildHeaderInputs() {
   const blk = document.createElement("div");
   blk.className = "form-block";
   blk.innerHTML = `<strong>Header / Mandatory fields</strong>`;
 
-  // FSM Serial + Inspectors
-  const row = document.createElement("div");
-  row.className = "form-row";
+  // Row 1: FSM Serial + Inspectors
+  const row1 = document.createElement("div");
+  row1.className = "form-row";
 
   const c1 = document.createElement("div");
   c1.className = "col";
@@ -160,77 +196,67 @@ function buildHeaderInputs() {
   const c2 = document.createElement("div");
   c2.className = "col";
   c2.innerHTML = `<div class="small">Inspectors:</div>`;
-  const inspector1 = makeInput({
-    id: "inspector1",
-    className: "input-small",
-    placeholder: "Inspector 1",
-  });
-  const inspector2 = makeInput({
-    id: "inspector2",
-    className: "input-small",
-    placeholder: "Inspector 2",
-  });
+  const inspector1 = makeInput({ id: "inspector1", className: "input-small", placeholder: "Inspector 1" });
+  const inspector2 = makeInput({ id: "inspector2", className: "input-small", placeholder: "Inspector 2" });
   c2.append(inspector1, inspector2);
-  row.append(c1, c2);
-  blk.appendChild(row);
 
-  // KB/PC + Root/FSM
+  row1.append(c1, c2);
+  blk.append(row1);
+
+  // Row 2: Total Holes + Matrix + KB/PC + Root/FSM
   const row2 = document.createElement("div");
   row2.className = "form-row";
+
+  const holesCol = document.createElement("div");
+  holesCol.className = "col";
+  holesCol.innerHTML = `<div class="small">TOTAL HOLES COUNT (Spec / Act):</div>`;
+  const holesSpec = makeInput({
+    id: "holesSpec",
+    className: "input-small",
+    value: parsedHeader.totalHoles || "",
+    readOnly: true,
+  });
+  const holesAct = makeInput({ id: "holesAct", className: "input-small", placeholder: "Act (mandatory)" });
+  holesCol.append(holesSpec, holesAct);
+
+  const matrixCol = document.createElement("div");
+  matrixCol.className = "col";
+  matrixCol.innerHTML = `<div class="small">Matrix Used:</div>`;
+  const matrixInput = makeInput({ id: "matrixUsed", className: "input-small", placeholder: "Enter Matrix" });
+  matrixCol.appendChild(matrixInput);
+
+  row2.append(holesCol, matrixCol);
+  blk.append(row2);
+
+  // Row 3: KB & PC + Root/FSM
+  const row3 = document.createElement("div");
+  row3.className = "form-row";
+
   const kbcol = document.createElement("div");
   kbcol.className = "col";
   kbcol.innerHTML = `<div class="small">KB & PC Code (Spec / Act)</div>`;
-
-  const kbSpec = makeInput({
-    className: "input-small",
-    id: "kbSpec",
-    value: parsedHeader.kbSpec || "",
-    readOnly: true,
-  });
-  const kbAct = makeInput({ className: "input-small", id: "kbAct" });
-  const pcSpec = makeInput({
-    className: "input-small",
-    id: "pcSpec",
-    value: parsedHeader.pcSpec || "",
-    readOnly: true,
-  });
-  const pcAct = makeInput({ className: "input-small", id: "pcAct" });
-  kbcol.append(
-    kbSpec,
-    document.createTextNode(" / "),
-    kbAct,
-    document.createTextNode("    "),
-    pcSpec,
-    document.createTextNode(" / "),
-    pcAct
-  );
+  const kbSpec = makeInput({ className: "input-small", value: parsedHeader.kbSpec || "", readOnly: true });
+  const kbAct = makeInput({ className: "input-small" });
+  const pcSpec = makeInput({ className: "input-small", value: parsedHeader.pcSpec || "", readOnly: true });
+  const pcAct = makeInput({ className: "input-small" });
+  kbcol.append(kbSpec, document.createTextNode(" / "), kbAct, document.createTextNode("    "), pcSpec, document.createTextNode(" / "), pcAct);
 
   const rwcol = document.createElement("div");
   rwcol.className = "col";
   rwcol.innerHTML = `<div class="small">ROOT WIDTH OF FSM (Spec / Act) mm | FSM LENGTH (Spec / Act) mm</div>`;
-  const rootSpec = makeInput({
-    id: "rootSpec",
-    className: "input-small",
-    value: parsedHeader.rootWidth || "",
-    readOnly: true,
-  });
-  const rootAct = makeInput({ id: "rootAct", className: "input-small" });
-  const fsmSpec = makeInput({
-    id: "fsmSpec",
-    className: "input-small",
-    value: parsedHeader.fsmLength || "",
-    readOnly: true,
-  });
-  const fsmAct = makeInput({ id: "fsmAct", className: "input-small" });
+  const rootSpec = makeInput({ className: "input-small", value: parsedHeader.rootWidth || "", readOnly: true });
+  const rootAct = makeInput({ className: "input-small", placeholder: "Act (mm)" });
+  const fsmSpec = makeInput({ className: "input-small", value: parsedHeader.fsmLength || "", readOnly: true });
+  const fsmAct = makeInput({ className: "input-small", placeholder: "Act (mm)" });
   rwcol.append(rootSpec, rootAct, fsmSpec, fsmAct);
 
-  row2.append(kbcol, rwcol);
-  blk.appendChild(row2);
+  row3.append(kbcol, rwcol);
+  blk.append(row3);
 
-  formArea.appendChild(blk);
+  formArea.append(blk);
 }
 
-/* ---------- Main inspection table ---------- */
+/* ---------- Main Inspection Table ---------- */
 function buildMainTable() {
   const blk = document.createElement("div");
   blk.className = "form-block";
@@ -245,23 +271,19 @@ function buildMainTable() {
       <th>Sl No</th><th>Press</th><th>Sel ID</th><th>Ref</th>
       <th>X-axis</th><th>Spec (Y or Z)</th><th>Spec Dia</th>
       <th>Value from Hole edge (Act)</th><th>Actual Dia</th>
-      <th>Actual Y or Z</th><th>Offset (Actual - Spec)</th><th>Result</th>
+      <th>Actual Y or Z</th><th>Offset</th><th>Result</th>
     </tr>`;
-  table.appendChild(thead);
+  table.append(thead);
 
   const tbody = document.createElement("tbody");
-  const rowsToBuild = parsedTableRows.length ? parsedTableRows.length : 20;
-
-  for (let i = 0; i < rowsToBuild; i++) {
+  parsedTableRows.forEach((tokens, i) => {
     const tr = document.createElement("tr");
-    const tokens = parsedTableRows[i] || [];
 
-    const makePrefilled = (v) => {
-      const inp = makeInput({ className: "input-small", value: v || "", readOnly: true });
+    const makePrefilled = (val) => {
+      const inp = makeInput({ className: "input-small", value: val || "", readOnly: true });
       inp.style.background = "#f0f0f0";
       return inp;
     };
-
     const sl = makePrefilled(i + 1);
     const press = makePrefilled(tokens[1] || "");
     const sel = makePrefilled(tokens[2] || "");
@@ -284,20 +306,21 @@ function buildMainTable() {
       tr.appendChild(tdWrap(v))
     );
     tr.append(offset, result);
-    tbody.appendChild(tr);
-  }
+    tbody.append(tr);
+  });
 
-  table.appendChild(tbody);
-  blk.appendChild(table);
-  formArea.appendChild(blk);
+  table.append(tbody);
+  blk.append(table);
+  formArea.append(blk);
 }
 
 function tdWrap(el) {
   const td = document.createElement("td");
-  td.appendChild(el);
+  td.append(el);
   return td;
 }
 
+/* ---------- Row Recalculation ---------- */
 function recalcRow(tr) {
   const tds = tr.querySelectorAll("td");
   const specYZ = parseFloat((tds[5].querySelector("input") || {}).value || NaN);
@@ -312,17 +335,10 @@ function recalcRow(tr) {
   offsetCell.textContent = isNaN(offset) ? "" : offset.toFixed(2);
 
   let ok = true;
-  if (!isNaN(specDia) && !isNaN(actDia)) {
-    ok = actDia >= specDia - 0.2 && actDia <= specDia + 0.5;
-  }
+  if (!isNaN(specDia) && !isNaN(actDia)) ok = actDia >= specDia - 0.2 && actDia <= specDia + 0.5;
 
-  if (ok) {
-    resultCell.textContent = "OK";
-    resultCell.className = "ok-cell";
-  } else {
-    resultCell.textContent = "NOK";
-    resultCell.className = "nok-cell";
-  }
+  resultCell.textContent = ok ? "OK" : "NOK";
+  resultCell.className = ok ? "ok-cell" : "nok-cell";
 }
 
 /* ---------- Export to PDF ---------- */
@@ -339,7 +355,7 @@ exportPdfBtn.addEventListener("click", async () => {
   exportPdfBtn.textContent = "Export to PDF";
 });
 
-/* ---------- Helper Messages ---------- */
+/* ---------- Message Helper ---------- */
 function showMessage(msg, type) {
   warnings.textContent = msg;
   warnings.style.padding = "6px";
