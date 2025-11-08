@@ -233,3 +233,20 @@ main {
   width: auto;
   min-width: 60px;
 }
+/* Fix Root Width visibility & consistent input alignment */
+.form-row .col {
+  min-width: 280px;
+  vertical-align: top;
+}
+
+.form-row .col input.input-small {
+  display: inline-block;
+  margin: 2px 4px;
+  width: auto;
+  min-width: 80px;
+}
+
+#rootSpec,
+#rootAct {
+  width: 100px;
+}
