@@ -602,36 +602,59 @@ function extractLastHoleSpecs(text) {
 
 /* ---------- Root width and flanges ---------- */
 function buildRootAndFlangeSection() {
-  const blk = document.createElement('div'); blk.className='form-block';
+  const blk = document.createElement("div");
+  blk.className = "form-block";
   blk.innerHTML = `<strong>Root / Flange / Web (reference)</strong>`;
-  const tbl = document.createElement('table'); tbl.className='table';
-  tbl.innerHTML = `<thead><tr><th>Root Width of FSM (Spec)</th><th>Root Width Act</th><th>Top Flange</th><th>Web PWM</th><th>Bottom Flange</th></tr></thead>`;
-  const tb = document.createElement('tbody');
-  const tr = document.createElement('tr');
-  const rootSpecTd = document.createElement('td'); rootSpecTd.textContent = document.getElementById('rootSpec')?.value || "";
-  // safely reuse value from earlier input without breaking layout
-let rootActValue = document.getElementById('rootAct')?.value || "";
-const rootActInput = makeInput({
-  className: 'input-small',
-  value: rootActValue,
-  placeholder: "Act (mm)",
-  id: "rootAct_flange"
-});
-  rootActInput.addEventListener('input', ()=> {
-    const spec = parseFloat(rootSpecTd.textContent||NaN);
-    const act = parseFloat(rootActInput.value||NaN);
+
+  const tbl = document.createElement("table");
+  tbl.className = "table";
+  tbl.innerHTML = `
+    <thead>
+      <tr>
+        <th>Root Width Spec</th>
+        <th>Root Width Act</th>
+        <th>Top Flange</th>
+        <th>Web PWM</th>
+        <th>Bottom Flange</th>
+      </tr>
+    </thead>
+  `;
+
+  const tb = document.createElement("tbody");
+  const tr = document.createElement("tr");
+
+  // Use values from header if available
+  const rootSpecTd = document.createElement("td");
+  rootSpecTd.textContent = document.getElementById("rootSpec")?.value || "";
+
+  const rootActInput = makeInput({
+    className: "input-small",
+    id: "rootAct_flange",
+    placeholder: "Act (mm)",
+    value: document.getElementById("rootActRef")?.textContent || ""
+  });
+
+  rootActInput.addEventListener("input", () => {
+    const spec = parseFloat(rootSpecTd.textContent || NaN);
+    const act = parseFloat(rootActInput.value || NaN);
     if (!isNaN(spec) && !isNaN(act)) {
-      if (Math.abs(act - spec) > 1) rootActInput.classList.add('nok-cell');
-      else { rootActInput.classList.remove('nok-cell'); rootActInput.classList.add('ok-cell'); }
+      if (Math.abs(act - spec) > 1) rootActInput.classList.add("nok-cell");
+      else rootActInput.classList.remove("nok-cell");
     }
   });
-  const topFl = document.createElement('td'); topFl.textContent = "Top Flange: PWM (info)";
-  const webPW = document.createElement('td'); webPW.textContent = "Web PWM (info)";
-  const bottomFl = document.createElement('td'); bottomFl.textContent = "Bottom Flange (info)";
-  tr.appendChild(rootSpecTd);
-  tr.appendChild(tdWrap(rootActInput));
-  tr.appendChild(topFl); tr.appendChild(webPW); tr.appendChild(bottomFl);
-  tb.appendChild(tr); tbl.appendChild(tb); blk.appendChild(tbl); formArea.appendChild(blk);
+
+  const topFl = document.createElement("td");
+  topFl.textContent = "Top Flange: PWM (info)";
+  const webPW = document.createElement("td");
+  webPW.textContent = "Web PWM (info)";
+  const bottomFl = document.createElement("td");
+  bottomFl.textContent = "Bottom Flange (info)";
+
+  tr.append(rootSpecTd, tdWrap(rootActInput), topFl, webPW, bottomFl);
+  tb.appendChild(tr);
+  tbl.appendChild(tb);
+  blk.appendChild(tbl);
+  formArea.appendChild(blk);
 }
 
 /* ---------- Part no location ---------- */
