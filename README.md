@@ -1,2 +1,2 @@
 # Soenen-Inspection
-For digitizing patrol inspection for FSM in Soenen CNC
+For digitizing patrol inspection of FSM in Soenen CNC Punching line
