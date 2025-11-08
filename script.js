@@ -1,70 +1,92 @@
-const fileInput = document.getElementById('fileInput');
-const extractBtn = document.getElementById('extractBtn');
-const pdfViewer = document.getElementById('pdfViewer');
-const rawTextEl = document.getElementById('rawText');
-const headerOut = document.getElementById('headerOut');
-const tablePreview = document.getElementById('tablePreview');
+/**********************************************************************
+ Fix for "Cannot perform Construct on a detached ArrayBuffer"
+ Keeps a safe copy of the PDF for text extraction.
+**********************************************************************/
 
-let currentPDFBuffer = null;
+const fileInput = document.getElementById("fileInput");
+const extractBtn = document.getElementById("extractBtn");
+const pdfViewer = document.getElementById("pdfViewer");
+const rawTextEl = document.getElementById("rawText");
+const headerOut = document.getElementById("headerOut");
+const tablePreview = document.getElementById("tablePreview");
+
+let pdfBytes = null; // safe copy for text extraction
+
 pdfjsLib.GlobalWorkerOptions.workerSrc =
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.worker.min.js';
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.worker.min.js";
 
-fileInput.addEventListener('change', async e => {
+/* ---------- Upload & preview ---------- */
+fileInput.addEventListener("change", async (e) => {
   const f = e.target.files[0];
   if (!f) return;
+
+  // Read bytes once and keep an untouched copy
   const arrayBuffer = await f.arrayBuffer();
-  currentPDFBuffer = arrayBuffer;
-  renderPDF(arrayBuffer);
+  pdfBytes = new Uint8Array(arrayBuffer);
+
+  // Render preview using a *different* copy
+  const previewBuffer = pdfBytes.slice(0);
+  await renderPDF(previewBuffer);
 });
 
-extractBtn.addEventListener('click', async () => {
-  if (!currentPDFBuffer) {
-    alert('Please choose a PDF first.');
+/* ---------- Extract & parse ---------- */
+extractBtn.addEventListener("click", async () => {
+  if (!pdfBytes) {
+    alert("Please choose a PDF first.");
     return;
   }
+
   extractBtn.disabled = true;
-  extractBtn.textContent = 'Extracting...';
+  extractBtn.textContent = "Extracting...";
+
   try {
-    const text = await extractTextFromPDF(currentPDFBuffer.slice(0));
+    // clone again so pdf.js gets its own buffer
+    const workingCopy = pdfBytes.slice(0);
+    const text = await extractTextFromPDF(workingCopy);
     showRawText(text);
     const header = parseHeader(text);
     headerOut.textContent = JSON.stringify(header, null, 2);
     const rows = detectTableLines(text);
     showTableLines(rows);
   } catch (err) {
-    alert('Error: ' + err.message);
+    alert("Error while extracting: " + err.message);
     console.error(err);
+  } finally {
+    extractBtn.disabled = false;
+    extractBtn.textContent = "Extract Text & Parse";
   }
-  extractBtn.disabled = false;
-  extractBtn.textContent = 'Extract Text & Parse';
 });
 
-async function renderPDF(buf) {
-  pdfViewer.innerHTML = '';
-  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-  const p1 = await pdf.getPage(1);
-  const vp = p1.getViewport({ scale: 1.2 });
-  const canvas = document.createElement('canvas');
-  canvas.width = vp.width; canvas.height = vp.height;
-  const ctx = canvas.getContext('2d');
-  await p1.render({ canvasContext: ctx, viewport: vp }).promise;
+/* ---------- Render first page ---------- */
+async function renderPDF(bytes) {
+  pdfViewer.innerHTML = "";
+  const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+  const page = await pdf.getPage(1);
+  const viewport = page.getViewport({ scale: 1.2 });
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await page.render({ canvasContext: ctx, viewport }).promise;
   pdfViewer.appendChild(canvas);
 }
 
-async function extractTextFromPDF(buf) {
-  const doc = await pdfjsLib.getDocument({ data: buf }).promise;
-  let out = '';
+/* ---------- Extract text ---------- */
+async function extractTextFromPDF(bytes) {
+  const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
+  let out = "";
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    out += content.items.map(it => it.str).join(' ') + '\n---PAGE_BREAK---\n';
+    out += content.items.map((it) => it.str).join(" ") + "\n---PAGE_BREAK---\n";
   }
   return out;
 }
 
+/* ---------- Display helpers ---------- */
 function showRawText(t) {
-  const lines = t.split(/\n|---PAGE_BREAK---/).map(s => s.trim()).filter(Boolean);
-  rawTextEl.textContent = lines.slice(0, 200).join('\n');
+  const lines = t.split(/\n|---PAGE_BREAK---/).map((s) => s.trim()).filter(Boolean);
+  rawTextEl.textContent = lines.slice(0, 200).join("\n");
 }
 
 function parseHeader(t) {
@@ -83,22 +105,22 @@ function parseHeader(t) {
 }
 
 function detectTableLines(t) {
-  const lines = t.split(/\n|---PAGE_BREAK---/).map(s => s.replace(/\s{2,}/g, ' ').trim()).filter(Boolean);
+  const lines = t.split(/\n|---PAGE_BREAK---/).map(s => s.replace(/\s{2,}/g," ").trim()).filter(Boolean);
   return lines.filter(l => /^\d+\b/.test(l) || /\bPWX?\b|\bPWM\b|\bPFB\b|\bPFF\b/i.test(l));
 }
 
 function showTableLines(rows) {
   if (!rows.length) {
-    tablePreview.textContent = 'No table rows found.';
+    tablePreview.textContent = "No table rows found.";
     return;
   }
-  const ol = document.createElement('ol');
-  ol.style.paddingLeft = '18px';
+  const ol = document.createElement("ol");
+  ol.style.paddingLeft = "18px";
   rows.forEach(r => {
-    const li = document.createElement('li');
+    const li = document.createElement("li");
     li.textContent = r;
     ol.appendChild(li);
   });
-  tablePreview.innerHTML = '';
+  tablePreview.innerHTML = "";
   tablePreview.appendChild(ol);
 }
