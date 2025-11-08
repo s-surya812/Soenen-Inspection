@@ -236,32 +236,58 @@ function buildHeaderInputs() {
   row2.appendChild(c3); row2.appendChild(c4);
   blk.appendChild(row2);
 
-  // KB & PC area: allow dynamic spec/act
-  const row3 = document.createElement("div"); row3.className="form-row";
-  const kbcol = document.createElement("div"); kbcol.className="col";
-  kbcol.innerHTML = `<div class="small">KB & PC Code (Spec / Act)</div>`;
- const kbSpec = makeInput({
+// KB & PC area: allow dynamic spec/act
+const row3 = document.createElement("div");
+row3.className = "form-row";
+const kbcol = document.createElement("div");
+kbcol.className = "col";
+kbcol.innerHTML = `<div class="small">KB & PC Code (Spec / Act)</div>`;
+
+// Compact KB/PC inputs (3 chars wide)
+const kbSpec = makeInput({
   className: "input-small",
   id: "kbSpec",
-  placeholder: "KB Spec",
   readOnly: true,
+  placeholder: "Spec",
+  size: 3
 });
 const pcSpec = makeInput({
   className: "input-small",
   id: "pcSpec",
-  placeholder: "PC Spec",
   readOnly: true,
+  placeholder: "Spec",
+  size: 3
 });
-  const kbAct = makeInput({className:"input-small", id:"kbAct"}); kbAct.placeholder="KB Act";
-  const pcAct = makeInput({className:"input-small", id:"pcAct"}); pcAct.placeholder="PC Act";
-  // prefill if parsed
-  if (parsedHeader.kbSpec) kbSpec.value = parsedHeader.kbSpec;
-  if (parsedHeader.pcSpec) pcSpec.value = parsedHeader.pcSpec;
-  kbcol.appendChild(kbSpec); kbcol.appendChild(pcSpec); kbcol.appendChild(kbAct); kbcol.appendChild(pcAct);
-  row3.appendChild(kbcol);
-  blk.appendChild(row3);
+const kbAct = makeInput({
+  className: "input-small",
+  id: "kbAct",
+  placeholder: "Act",
+  size: 3
+});
+const pcAct = makeInput({
+  className: "input-small",
+  id: "pcAct",
+  placeholder: "Act",
+  size: 3
+});
 
-// Root Width and FSM Length (Spec = Readonly, Act = Editable)
+// Pre-fill parsed values if available
+if (parsedHeader.kbSpec) kbSpec.value = parsedHeader.kbSpec;
+if (parsedHeader.pcSpec) pcSpec.value = parsedHeader.pcSpec;
+
+kbcol.append(
+  kbSpec,
+  document.createTextNode(" / "),
+  kbAct,
+  document.createTextNode("    "),
+  pcSpec,
+  document.createTextNode(" / "),
+  pcAct
+);
+row3.appendChild(kbcol);
+blk.appendChild(row3);
+
+// Root Width + FSM Length (side-by-side)
 const row4 = document.createElement("div");
 row4.className = "form-row";
 
@@ -272,18 +298,18 @@ rwcol.innerHTML = `<div class="small">ROOT WIDTH OF FSM (Spec / Act) mm</div>`;
 const rootSpec = makeInput({
   className: "input-small",
   id: "rootSpec",
-  readOnly: true, // parsed Spec should not be editable
+  readOnly: true,
   value: parsedHeader.rootWidth || "",
+  size: 6
 });
 const rootAct = makeInput({
   className: "input-small",
   id: "rootAct",
+  placeholder: "Act (mm)",
   step: "0.01",
-  placeholder: "Enter actual Root Width (mm)",
+  size: 6
 });
-rwcol.appendChild(rootSpec);
-rwcol.appendChild(document.createTextNode(" "));
-rwcol.appendChild(rootAct);
+rwcol.append(rootSpec, document.createTextNode(" "), rootAct);
 
 // FSM Length block
 const fsmcol = document.createElement("div");
@@ -292,20 +318,19 @@ fsmcol.innerHTML = `<div class="small">FSM LENGTH (Spec / Act) mm</div>`;
 const fsmSpecInp = makeInput({
   className: "input-small",
   id: "fsmSpec",
-  readOnly: true, // parsed Spec should not be editable
+  readOnly: true,
   value: parsedHeader.fsmLength || "",
+  size: 6
 });
 const fsmActInp = makeInput({
   className: "input-small",
   id: "fsmAct",
-  placeholder: "Enter actual FSM Length (mm)",
+  placeholder: "Act (mm)",
+  size: 6
 });
-fsmcol.appendChild(fsmSpecInp);
-fsmcol.appendChild(fsmActInp);
+fsmcol.append(fsmSpecInp, document.createTextNode(" "), fsmActInp);
 
-// Add both columns
-row4.appendChild(rwcol);
-row4.appendChild(fsmcol);
+row4.append(rwcol, fsmcol);
 blk.appendChild(row4);
 
   formArea.appendChild(blk);
