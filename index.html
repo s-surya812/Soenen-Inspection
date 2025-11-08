@@ -1,42 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Soenen Inspection – PDF Extractor (Phase 1)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Soenen Inspection – Phase 2</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
-    <h1>Soenen Inspection – Phase 1 (PDF Upload & Extract)</h1>
-    <p>Upload your inspection PDF (e.g. FH115013_…). This tool previews the PDF and extracts text for verification.</p>
+    <div class="header-left">
+      <h1>SOENEN PATROL INSPECTION CHECK SHEET</h1>
+      <div class="meta-row">
+        <div><strong>PART NUMBER / LEVEL / HAND :</strong> <span id="hdrPart">—</span></div>
+        <div><strong>FSM LENGTH :</strong> <span id="hdrFsmSpec">—</span> mm</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <img id="companyLogo" src="images/Ashok_Leyland_Logo.png" alt="Ashok Leyland" />
+      <div class="format-no">FORMAT NO: RLEF4907 / 12</div>
+    </div>
   </header>
 
   <main>
-    <section id="controls">
-      <input id="fileInput" type="file" accept="application/pdf" />
-      <button id="extractBtn">Extract Text &amp; Parse</button>
+    <section class="controls">
+      <div>
+        <input id="fileInput" type="file" accept="application/pdf" />
+        <button id="extractBtn">Load &amp; Parse PDF</button>
+      </div>
+      <div class="actions">
+        <button id="generateFormBtn" disabled>Create Editable Form</button>
+        <button id="exportPdfBtn" disabled>Export to PDF</button>
+      </div>
     </section>
 
-    <section id="preview">
+    <section id="preview" class="panel">
       <h2>PDF Preview</h2>
-      <div id="pdfViewer">No PDF loaded.</div>
+      <div id="pdfViewer">No PDF loaded</div>
     </section>
 
-    <section id="results">
+    <section id="parsed" class="panel">
       <h2>Parsed Header</h2>
       <pre id="headerOut">No header parsed yet.</pre>
+    </section>
 
-      <h2>Raw Extracted Text (First 200 Lines)</h2>
-      <pre id="rawText">No text yet.</pre>
+    <section id="formArea" class="panel">
+      <!-- Dynamic editable form will appear here -->
+    </section>
 
-      <h2>Detected Table Lines</h2>
-      <div id="tablePreview">No table lines detected yet.</div>
+    <section id="messages" class="panel">
+      <div id="warnings"></div>
     </section>
   </main>
 
-  <!-- pdf.js CDN -->
+  <!-- libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <script src="script.js"></script>
 </body>
 </html>
