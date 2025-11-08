@@ -301,10 +301,11 @@ blk.appendChild(row3);
 const row4 = document.createElement("div");
 row4.className = "form-row";
 
-// Root Width block
+// ROOT WIDTH BLOCK
 const rwcol = document.createElement("div");
 rwcol.className = "col";
 rwcol.innerHTML = `<div class="small">ROOT WIDTH OF FSM (Spec / Act) mm</div>`;
+
 const rootSpec = makeInput({
   className: "input-small",
   id: "rootSpec",
@@ -312,6 +313,7 @@ const rootSpec = makeInput({
   value: parsedHeader.rootWidth || "",
   size: 6
 });
+
 const rootAct = makeInput({
   className: "input-small",
   id: "rootAct",
@@ -319,12 +321,16 @@ const rootAct = makeInput({
   step: "0.01",
   size: 6
 });
-rwcol.append(rootSpec, document.createTextNode(" "), rootAct);
 
-// FSM Length block
+rwcol.appendChild(rootSpec);
+rwcol.appendChild(document.createTextNode(" "));
+rwcol.appendChild(rootAct);
+
+// FSM LENGTH BLOCK
 const fsmcol = document.createElement("div");
 fsmcol.className = "col";
 fsmcol.innerHTML = `<div class="small">FSM LENGTH (Spec / Act) mm</div>`;
+
 const fsmSpecInp = makeInput({
   className: "input-small",
   id: "fsmSpec",
@@ -332,19 +338,25 @@ const fsmSpecInp = makeInput({
   value: parsedHeader.fsmLength || "",
   size: 6
 });
+
 const fsmActInp = makeInput({
   className: "input-small",
   id: "fsmAct",
   placeholder: "Act (mm)",
   size: 6
 });
-fsmcol.append(fsmSpecInp, document.createTextNode(" "), fsmActInp);
 
-row4.append(rwcol, fsmcol);
+fsmcol.appendChild(fsmSpecInp);
+fsmcol.appendChild(document.createTextNode(" "));
+fsmcol.appendChild(fsmActInp);
+
+// Append both columns to same row
+row4.appendChild(rwcol);
+row4.appendChild(fsmcol);
 blk.appendChild(row4);
 
-  formArea.appendChild(blk);
-}
+// Debug check — will show in console
+console.log("✅ Root Width fields added:", rootSpec, rootAct);
 
 /* ---------- Main inspection table ---------- */
 function buildMainTable() {
