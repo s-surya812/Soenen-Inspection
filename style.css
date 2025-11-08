@@ -1,0 +1,47 @@
+:root { --accent:#005fcc; }
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  margin: 0;
+  color: #111;
+  line-height: 1.5;
+}
+header {
+  background: linear-gradient(90deg, #eef4ff, #ffffff);
+  padding: 16px;
+  border-bottom: 1px solid #ddd;
+}
+header h1 { margin: 0 0 6px 0; font-size: 1.25rem; }
+main { display: grid; gap: 20px; padding: 20px; }
+#controls { display: flex; gap: 10px; align-items: center; }
+#pdfViewer {
+  min-height: 360px;
+  border: 1px solid #ccc;
+  background: #fafafa;
+  overflow: auto;
+  padding: 10px;
+}
+pre {
+  background: #111;
+  color: #e6e6e6;
+  padding: 10px;
+  border-radius: 6px;
+  overflow: auto;
+  max-height: 260px;
+}
+#tablePreview {
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  padding: 12px;
+  background: #fff;
+  overflow: auto;
+  max-height: 260px;
+}
+button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.6; }
