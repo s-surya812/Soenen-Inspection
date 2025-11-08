@@ -1,3 +1,38 @@
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid black;
+  padding: 10px 20px;
+}
+
+.header-left img {
+  height: 60px; /* Adjust to match your PDF size */
+  width: auto;
+}
+
+.header-center {
+  text-align: center;
+  flex-grow: 1;
+}
+
+.header-center h1 {
+  font-size: 20px;
+  margin: 0;
+  font-weight: bold;
+}
+
+.header-center p {
+  font-size: 14px;
+  margin: 5px 0 0;
+  font-weight: 500;
+}
+
+.header-right {
+  text-align: right;
+  font-size: 14px;
+  font-weight: bold;
+}
 :root{
   --accent:#005fcc;
   --green:#006400;
