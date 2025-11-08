@@ -240,8 +240,18 @@ function buildHeaderInputs() {
   const row3 = document.createElement("div"); row3.className="form-row";
   const kbcol = document.createElement("div"); kbcol.className="col";
   kbcol.innerHTML = `<div class="small">KB & PC Code (Spec / Act)</div>`;
-  const kbSpec = makeInput({className:"input-small", id:"kbSpec, readOnly: true"}); kbSpec.placeholder="KB Spec";
-  const pcSpec = makeInput({className:"input-small", id:"pcSpec, readOnly: true"}); pcSpec.placeholder="PC Spec";
+ const kbSpec = makeInput({
+  className: "input-small",
+  id: "kbSpec",
+  placeholder: "KB Spec",
+  readOnly: true,
+});
+const pcSpec = makeInput({
+  className: "input-small",
+  id: "pcSpec",
+  placeholder: "PC Spec",
+  readOnly: true,
+});
   const kbAct = makeInput({className:"input-small", id:"kbAct"}); kbAct.placeholder="KB Act";
   const pcAct = makeInput({className:"input-small", id:"pcAct"}); pcAct.placeholder="PC Act";
   // prefill if parsed
