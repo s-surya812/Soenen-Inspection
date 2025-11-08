@@ -240,8 +240,8 @@ function buildHeaderInputs() {
   const row3 = document.createElement("div"); row3.className="form-row";
   const kbcol = document.createElement("div"); kbcol.className="col";
   kbcol.innerHTML = `<div class="small">KB & PC Code (Spec / Act)</div>`;
-  const kbSpec = makeInput({className:"input-small", id:"kbSpec"}); kbSpec.placeholder="KB Spec";
-  const pcSpec = makeInput({className:"input-small", id:"pcSpec"}); pcSpec.placeholder="PC Spec";
+  const kbSpec = makeInput({className:"input-small", id:"kbSpec, readOnly: true"}); kbSpec.placeholder="KB Spec";
+  const pcSpec = makeInput({className:"input-small", id:"pcSpec, readOnly: true"}); pcSpec.placeholder="PC Spec";
   const kbAct = makeInput({className:"input-small", id:"kbAct"}); kbAct.placeholder="KB Act";
   const pcAct = makeInput({className:"input-small", id:"pcAct"}); pcAct.placeholder="PC Act";
   // prefill if parsed
@@ -251,20 +251,51 @@ function buildHeaderInputs() {
   row3.appendChild(kbcol);
   blk.appendChild(row3);
 
-  // root width and fsm length (spec / act)
-  const row4 = document.createElement("div"); row4.className="form-row";
-  const rwcol = document.createElement("div"); rwcol.className="col";
-  rwcol.innerHTML = `<div class="small">ROOT WIDTH OF FSM (Spec / Act) mm</div>`;
-  const rootSpec = makeInput({className:"input-small", id:"rootSpec"}); rootSpec.value = parsedHeader.rootWidth || "";
-  const rootAct = makeInput({className:"input-small", id:"rootAct", step:"0.01"}); rootAct.placeholder="Act (2 decimals)";
-  rwcol.appendChild(rootSpec); rwcol.appendChild(rootAct);
-  const fsmcol = document.createElement("div"); fsmcol.className="col";
-  fsmcol.innerHTML = `<div class="small">FSM LENGTH (Spec / Act) mm</div>`;
-  const fsmSpecInp = makeInput({className:"input-small", id:"fsmSpec"}); fsmSpecInp.value = parsedHeader.fsmLength || "";
-  const fsmActInp = makeInput({className:"input-small", id:"fsmAct"}); fsmActInp.placeholder="Act (mm)";
-  fsmcol.appendChild(fsmSpecInp); fsmcol.appendChild(fsmActInp);
-  row4.appendChild(rwcol); row4.appendChild(fsmcol);
-  blk.appendChild(row4);
+// Root Width and FSM Length (Spec = Readonly, Act = Editable)
+const row4 = document.createElement("div");
+row4.className = "form-row";
+
+// Root Width block
+const rwcol = document.createElement("div");
+rwcol.className = "col";
+rwcol.innerHTML = `<div class="small">ROOT WIDTH OF FSM (Spec / Act) mm</div>`;
+const rootSpec = makeInput({
+  className: "input-small",
+  id: "rootSpec",
+  readOnly: true, // parsed Spec should not be editable
+  value: parsedHeader.rootWidth || "",
+});
+const rootAct = makeInput({
+  className: "input-small",
+  id: "rootAct",
+  step: "0.01",
+  placeholder: "Enter actual Root Width (mm)",
+});
+rwcol.appendChild(rootSpec);
+rwcol.appendChild(rootAct);
+
+// FSM Length block
+const fsmcol = document.createElement("div");
+fsmcol.className = "col";
+fsmcol.innerHTML = `<div class="small">FSM LENGTH (Spec / Act) mm</div>`;
+const fsmSpecInp = makeInput({
+  className: "input-small",
+  id: "fsmSpec",
+  readOnly: true, // parsed Spec should not be editable
+  value: parsedHeader.fsmLength || "",
+});
+const fsmActInp = makeInput({
+  className: "input-small",
+  id: "fsmAct",
+  placeholder: "Enter actual FSM Length (mm)",
+});
+fsmcol.appendChild(fsmSpecInp);
+fsmcol.appendChild(fsmActInp);
+
+// Add both columns
+row4.appendChild(rwcol);
+row4.appendChild(fsmcol);
+blk.appendChild(row4);
 
   formArea.appendChild(blk);
 }
