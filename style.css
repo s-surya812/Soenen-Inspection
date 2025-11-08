@@ -1,47 +1,53 @@
-:root { --accent:#005fcc; }
-body {
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-  margin: 0;
-  color: #111;
-  line-height: 1.5;
+:root{
+  --accent:#005fcc;
+  --green:#006400;
+  --green-fill:#ccffcc;
+  --red:#ff0000;
+  --pink-fill:#ffd6d6;
+  --warn:#ff8c00;
+  --warn-fill:#fff6cc;
+  --font: "Segoe UI", Roboto, Arial, sans-serif;
 }
-header {
-  background: linear-gradient(90deg, #eef4ff, #ffffff);
-  padding: 16px;
-  border-bottom: 1px solid #ddd;
-}
-header h1 { margin: 0 0 6px 0; font-size: 1.25rem; }
-main { display: grid; gap: 20px; padding: 20px; }
-#controls { display: flex; gap: 10px; align-items: center; }
-#pdfViewer {
-  min-height: 360px;
-  border: 1px solid #ccc;
-  background: #fafafa;
-  overflow: auto;
-  padding: 10px;
-}
-pre {
-  background: #111;
-  color: #e6e6e6;
-  padding: 10px;
-  border-radius: 6px;
-  overflow: auto;
-  max-height: 260px;
-}
-#tablePreview {
-  border: 1px dashed #ccc;
-  border-radius: 6px;
-  padding: 12px;
-  background: #fff;
-  overflow: auto;
-  max-height: 260px;
-}
-button {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-button:disabled { opacity: 0.6; }
+*{box-sizing:border-box}
+body{font-family:var(--font);margin:0;color:#111;background:#fafafa}
+header{display:flex;justify-content:space-between;align-items:flex-start;padding:14px;border-bottom:2px solid #ddd;background:#fff}
+header h1{margin:0;font-size:18px}
+.header-left .meta-row{margin-top:8px;display:flex;gap:18px;font-size:14px}
+.header-right{text-align:right}
+#companyLogo{width:80px;height:auto;display:block;margin-left:auto}
+.format-no{font-size:12px;margin-top:6px;font-weight:600}
+
+main{padding:16px;display:grid;gap:16px}
+.controls{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.controls input[type=file]{padding:6px}
+.controls button{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
+.panel{background:#fff;padding:12px;border:1px solid #e6e6e6;border-radius:6px}
+#pdfViewer{min-height:220px;border:1px solid #ddd;padding:8px;overflow:auto;background:#f7f7f7}
+
+/* Form layout */
+.form-row{display:flex;gap:12px;align-items:center;margin:8px 0}
+.form-row .col{flex:1}
+.form-block{border:1px solid #bbb;padding:10px;border-radius:4px;background:#fff}
+.table{width:100%;border-collapse:collapse;margin-top:8px}
+.table th,.table td{border:1px solid #000;padding:6px;text-align:center;font-size:13px}
+.table th{background:#efefef;font-weight:700}
+.input-small{width:100%;padding:4px;border:1px solid #888;border-radius:3px}
+
+/* colors for OK / NOK / warning */
+.ok-cell{color:var(--green);background-color:var(--green-fill);font-weight:600}
+.nok-cell{color:var(--red);background-color:var(--pink-fill);font-weight:600}
+.ok-cell-binary{color:var(--green);background-color:var(--green-fill);font-weight:600}
+.nok-cell-binary{color:var(--red);background-color:var(--pink-fill);font-weight:600}
+.warn-cell{color:var(--warn);background-color:var(--warn-fill);font-weight:600}
+
+/* Remarks */
+#remarks{width:100%;min-height:80px;border:1px solid #000;padding:8px;font-size:14px;resize:vertical}
+
+/* small */
+.small{font-size:12px;color:#333}
+.right{text-align:right}
+.center{text-align:center}
+
+/* Export footer */
+.export-footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.btn-disabled{opacity:0.5;pointer-events:none}
