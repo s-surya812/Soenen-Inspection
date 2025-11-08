@@ -218,3 +218,13 @@ main {
   background-color: var(--warn-fill);
   font-weight: 600;
 }
+#rootSpec,
+#rootAct,
+#rootAct_flange {
+  width: 100px !important;
+  display: inline-block !important;
+  margin-left: 4px !important;
+  border: 1px solid #444 !important;
+  background: #fff !important;
+  vertical-align: middle !important;
+}
