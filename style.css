@@ -226,3 +226,10 @@ main {
   opacity: 0.5;
   pointer-events: none;
 }
+/* Compact side-by-side Spec/Act fields */
+.form-row .col input.input-small {
+  display: inline-block;
+  margin-right: 6px;
+  width: auto;
+  min-width: 60px;
+}
