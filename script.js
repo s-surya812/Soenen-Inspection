@@ -360,7 +360,7 @@ blk.appendChild(row4);
 
 // debug marker
 console.log("✅ Root Width fields added:", rootSpec, rootAct);
-
+}
 /* ---------- Main inspection table ---------- */
 function buildMainTable() {
   const blk = document.createElement("div");
