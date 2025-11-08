@@ -24,18 +24,17 @@ let parsedTableRows = []; // best-effort rows from main inspection table
 function updateHeaderFields(parsedHeader) {
   if (!parsedHeader) return;
 
-  const hdrPart = document.getElementById("hdrPart");
-  const hdrFsmSpec = document.getElementById("hdrFsmSpec");
-
-  if (!hdrPart || !hdrFsmSpec) return;
+  const hdrPartEl = document.getElementById("hdrPart");
+  const hdrFsmSpecEl = document.getElementById("hdrFsmSpec");
+  if (!hdrPartEl || !hdrFsmSpecEl) return;
 
   const partNumber = parsedHeader.partNumber || "—";
   const revision = parsedHeader.revision || "—";
   const hand = parsedHeader.hand || "—";
   const fsmLength = parsedHeader.fsmLength || "—";
 
-  hdrPart.textContent = `PART NUMBER / LEVEL / HAND : ${partNumber} / ${revision} / ${hand}`;
-  hdrFsmSpec.textContent = `FSM LENGTH : ${fsmLength} mm`;
+  hdrPartEl.textContent = `PART NUMBER / LEVEL / HAND : ${partNumber} / ${revision} / ${hand}`;
+  hdrFsmSpecEl.textContent = `FSM LENGTH : ${fsmLength} mm`;
 }
 
 /* ---------- File load & preview ---------- */
@@ -53,10 +52,7 @@ fileInput.addEventListener("change", async (e) => {
 });
 
 extractBtn.addEventListener("click", async () => {
-  if (!pdfFile) {
-    alert("Please select a PDF first.");
-    return;
-  }
+  if (!pdfFile) { alert("Please select a PDF first."); return; }
   extractBtn.disabled = true;
   extractBtn.textContent = "Parsing...";
   try {
@@ -65,22 +61,22 @@ extractBtn.addEventListener("click", async () => {
     lastExtractedText = text;
     const hdr = parseHeader(text);
     parsedHeader = hdr;
-
     headerOut.textContent = JSON.stringify(hdr, null, 2);
 
-    // Safeguard update for header info
-    if (document.getElementById("hdrPart") && document.getElementById("hdrFsmSpec")) {
-      updateHeaderFields(parsedHeader);
-    }
+    // update header elements if present
+    if (hdrPart && hdrFsmSpec) updateHeaderFields(parsedHeader);
 
     // attempt to parse main table as rows:
     parsedTableRows = detectTableLines(text);
+    // enable create-form button
     generateFormBtn.disabled = false;
 
-    showMessage(
-      "Parsed PDF. Click 'Create Editable Form' to build the inspection form (you can edit any spec).",
-      "info"
-    );
+    // also mirror into header spans:
+    if (hdr.partNumber) hdrPart.textContent = `${hdr.partNumber} / ${hdr.revision} / ${hdr.hand}`;
+    else hdrPart.textContent = "—";
+    hdrFsmSpec.textContent = hdr.fsmLength || "—";
+
+    showMessage("Parsed PDF. Click 'Create Editable Form' to build the inspection form (you can edit any spec).", "info");
   } catch (err) {
     console.error(err);
     alert("Error while parsing PDF: " + err.message);
@@ -98,8 +94,7 @@ async function renderPDF(bytes) {
     const page = await pdf.getPage(1);
     const vp = page.getViewport({ scale: 1.1 });
     const canvas = document.createElement("canvas");
-    canvas.width = vp.width;
-    canvas.height = vp.height;
+    canvas.width = vp.width; canvas.height = vp.height;
     const ctx = canvas.getContext("2d");
     await page.render({ canvasContext: ctx, viewport: vp }).promise;
     pdfViewer.appendChild(canvas);
@@ -115,35 +110,19 @@ async function extractTextFromPDF(bytes) {
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    out += content.items.map((it) => it.str).join(" ") + "\n---PAGE_BREAK---\n";
+    out += content.items.map(it => it.str).join(" ") + "\n---PAGE_BREAK---\n";
   }
   return out;
 }
 
 /* ---------- parsing helpers (best-effort regexes) ---------- */
 function parseHeader(t) {
-  const h = {
-    partNumber: null,
-    revision: null,
-    hand: null,
-    date: null,
-    formatNo: null,
-    rootWidth: null,
-    fsmLength: null,
-    kbSpec: null,
-    pcSpec: null,
-  };
+  const h = { partNumber:null, revision:null, hand:null, date:null, formatNo:null, rootWidth:null, fsmLength:null, kbSpec:null, pcSpec:null };
   let m;
 
   // Part / Rev / Hand
-  m = t.match(
-    /PART\s*NUMBER\s*\/\s*LEVEL\s*\/\s*HAND\s*[:\s\-]*([A-Z0-9_\-]+)\s*\/\s*([A-Z0-9_\-]+)\s*\/\s*([A-Z]+)/i
-  );
-  if (m) {
-    h.partNumber = m[1];
-    h.revision = m[2];
-    h.hand = m[3];
-  }
+  m = t.match(/PART\s*NUMBER\s*\/\s*LEVEL\s*\/\s*HAND\s*[:\s\-]*([A-Z0-9_\-]+)\s*\/\s*([A-Z0-9_\-]+)\s*\/\s*([A-Z]+)/i);
+  if (m) { h.partNumber = m[1]; h.revision = m[2]; h.hand = m[3]; }
   // fallback
   if (!h.partNumber) {
     m = t.match(/PART\s*NUMBER\s*[:\s\-]*([A-Z0-9_\-]+)/i);
@@ -164,10 +143,7 @@ function parseHeader(t) {
 
   // KB & PC spec (try to find "KB & PC Code : Spec- 5 / 1" pattern)
   m = t.match(/KB\s*&\s*PC\s*Code\s*[:\-]*\s*Spec[-\s]*([0-9]+)\s*\/\s*([0-9]+)/i);
-  if (m) {
-    h.kbSpec = m[1];
-    h.pcSpec = m[2];
-  }
+  if (m) { h.kbSpec = m[1]; h.pcSpec = m[2]; }
 
   // Format number
   m = t.match(/FORMAT\s*NO\.?\s*[:\-]*\s*([A-Z0-9\/\s\-\_]+)/i);
@@ -178,10 +154,7 @@ function parseHeader(t) {
 
 /* Detect table-like lines (best-effort) */
 function detectTableLines(fullText) {
-  const lines = fullText
-    .split(/\n|---PAGE_BREAK---/)
-    .map((s) => s.replace(/\s{2,}/g, " ").trim())
-    .filter(Boolean);
+  const lines = fullText.split(/\n|---PAGE_BREAK---/).map(s => s.replace(/\s{2,}/g,' ').trim()).filter(Boolean);
   const rows = [];
   for (const line of lines) {
     if (/^\d+\b/.test(line)) {
@@ -189,7 +162,23 @@ function detectTableLines(fullText) {
     }
   }
   // convert rows to token arrays if possible
-  return rows.map((r) => r.split(/\s+/));
+  return rows.map(r => r.split(/\s+/));
+}
+
+/* ---------- create small helper to create an input with attributes ---------- */
+function makeInput(attrs = {}) {
+  const inp = document.createElement("input");
+  inp.type = attrs.type || "text";
+  inp.value = attrs.value || "";
+  inp.className = attrs.className || "input-small";
+  if (attrs.placeholder) inp.placeholder = attrs.placeholder;
+  if (attrs.step) inp.step = attrs.step;
+  if (attrs.onchange) inp.addEventListener('change', attrs.onchange);
+  if (attrs.oninput) inp.addEventListener('input', attrs.oninput);
+  if (attrs.readOnly) inp.readOnly = true;
+  if (attrs.size) inp.size = attrs.size;
+  if (attrs.id) inp.id = attrs.id;
+  return inp;
 }
 
 /* ---------- Header inputs (mandatory fields) ---------- */
@@ -281,7 +270,7 @@ function buildMainTable() {
   table.appendChild(thead);
   const tbody = document.createElement("tbody");
 
-  // If parsed rows available, attempt to populate; otherwise create 20 empty rows for input
+  // If parsed rows available, attempt to populate; otherwise create 20 rows (max 45 in real cases)
   const rowsToBuild = parsedTableRows.length ? parsedTableRows.length : 20;
   for (let i=0;i<rowsToBuild;i++){
     const tr = document.createElement("tr");
@@ -366,13 +355,12 @@ function recalcRowAndMark(tr) {
   if (!isNaN(specDia) && !isNaN(actualDia)) {
     if (specDia <= 10.7) diaOk = (actualDia >= specDia - 0 && actualDia <= specDia + 0.4);
     else if (specDia >= 11.7) diaOk = (actualDia >= specDia - 0 && actualDia <= specDia + 0.5);
-    // else if between 10.7 and 11.7 we will use wider check: default +/-0.5
     else diaOk = (actualDia >= specDia - 0 && actualDia <= specDia + 0.5);
   } else {
     diaOk = false; // require actualDia value
   }
 
-  // offset check: compare actualYZ (user-entered) against computed offset (the rule from you earlier)
+  // offset check: compare actualYZ (user-entered) against computed offset
   let offsetOk = true;
   if (!isNaN(offset) && !isNaN(actualYZ)) {
     const dev = Math.abs(actualYZ - offset);
@@ -418,12 +406,10 @@ function buildFirstHolesSection() {
     const offsetTd = document.createElement('td');
     const resultTd = document.createElement('td');
     [valEdge, actDia].forEach(inp => inp.addEventListener('input', ()=>{
-      // compute offset = Spec + (SpecDia/2) ---> for this small block assume SpecDia is same as a nearby field or left to user to fill in main table
       const spec = parseFloat(specTd.textContent||NaN);
       const dia = parseFloat(actDia.value||NaN);
       let offset = (isNaN(spec) || isNaN(dia)) ? "" : round(spec + (dia/2), 2);
       offsetTd.textContent = offset;
-      // tolerance ±1 mm comparing actual value from hole edge with spec
       const val = parseFloat(valEdge.value||NaN);
       if (!isNaN(val) && !isNaN(spec)) {
         if (Math.abs(val - spec) > 1) {
@@ -452,10 +438,9 @@ function buildFirstHolesSection() {
 
 function extractFirstHoleSpecs(text) {
   if (!text) return null;
-  // try to find sequence like "X Axis Top Flange PWM 110 Top Flange 365 Bottom Flange 21.5" or the first sequence of small numbers
+  // try to find sequence like numeric specs - best-effort
   const matches = text.match(/([0-9]{1,4}(?:\.[0-9]+)?)/g);
   if (!matches) return null;
-  // return first 5 plausible small numbers
   const smalls = matches.map(Number).filter(n=>n>0 && n<5000);
   return smalls.slice(0,5).map(n=>n.toString());
 }
@@ -655,7 +640,6 @@ function checkMandatoryBeforeExport() {
   }
 
   // All binary checks must be selected: simple check - ensure no binary button group is untouched
-  // We used buttons which toggle classes — as a lightweight approach, skip strict check here (optional)
   exportPdfBtn.disabled = false;
   clearMessage();
   return true;
@@ -753,3 +737,34 @@ function showMessage(msg, type="info") {
 function clearMessage(){ warnings.innerHTML=""; warnings.style.background=""; warnings.style.color=""; }
 function round(n,dec){ return Math.round(n * Math.pow(10,dec))/Math.pow(10,dec); }
 
+/* ---------------- Safety rebind (in case DOM or order changed) ---------------- */
+document.getElementById("generateFormBtn").addEventListener("click", () => {
+  // require parsed table rows (or at least parsing done)
+  if (!parsedTableRows || !parsedTableRows.length) {
+    showMessage("No parsed table data found. Please parse PDF first.", "warn");
+    return;
+  }
+
+  // button feedback
+  generateFormBtn.disabled = true;
+  generateFormBtn.textContent = "Building...";
+
+  // build the form
+  formArea.innerHTML = "";
+  warnings.innerHTML = "";
+  buildHeaderInputs();
+  buildMainTable();
+  buildFirstHolesSection();
+  buildLastHolesSection();
+  buildRootAndFlangeSection();
+  buildPartNoLocation();
+  buildBinaryChecks();
+  buildRemarksAndSign();
+  attachValidationListeners();
+
+  exportPdfBtn.disabled = false;
+  generateFormBtn.disabled = false;
+  generateFormBtn.textContent = "Create Editable Form";
+
+  showMessage("Editable form created. Fill Actual values and mandatory fields. Use 'Export to PDF' to generate the report.", "info");
+});
