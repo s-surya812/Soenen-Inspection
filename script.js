@@ -618,7 +618,14 @@ function buildRootAndFlangeSection() {
   const tb = document.createElement('tbody');
   const tr = document.createElement('tr');
   const rootSpecTd = document.createElement('td'); rootSpecTd.textContent = document.getElementById('rootSpec')?.value || "";
-  const rootActInput = document.getElementById('rootAct') || makeInput({className:'input-small'});
+  // safely reuse value from earlier input without breaking layout
+let rootActValue = document.getElementById('rootAct')?.value || "";
+const rootActInput = makeInput({
+  className: 'input-small',
+  value: rootActValue,
+  placeholder: "Act (mm)",
+  id: "rootAct_flange"
+});
   rootActInput.addEventListener('input', ()=> {
     const spec = parseFloat(rootSpecTd.textContent||NaN);
     const act = parseFloat(rootActInput.value||NaN);
