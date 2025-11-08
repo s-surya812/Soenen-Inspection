@@ -282,6 +282,7 @@ const rootAct = makeInput({
   placeholder: "Enter actual Root Width (mm)",
 });
 rwcol.appendChild(rootSpec);
+rwcol.appendChild(document.createTextNode(" "));
 rwcol.appendChild(rootAct);
 
 // FSM Length block
