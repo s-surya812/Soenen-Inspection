@@ -25,7 +25,7 @@ extractBtn.addEventListener('click', async () => {
   extractBtn.disabled = true;
   extractBtn.textContent = 'Extracting...';
   try {
-    const text = await extractTextFromPDF(currentPDFBuffer);
+    const text = await extractTextFromPDF(currentPDFBuffer.slice(0));
     showRawText(text);
     const header = parseHeader(text);
     headerOut.textContent = JSON.stringify(header, null, 2);
