@@ -7,29 +7,32 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
- <header class="sheet-header">
-  <div class="header-left">
-   <img src="./images/Al_logo.png" alt="Ashok Leyland Logo">
-  </div>
-
-  <div class="header-center">
-    <h1>SOENEN PATROL INSPECTION CHECK SHEET</h1>
-    <div class="part-info">
-      <span id="hdrPart">PART NUMBER / LEVEL / HAND : — / — / —</span>
-      &nbsp;&nbsp; | &nbsp;&nbsp;
-      <span id="hdrFsmSpec">FSM LENGTH : — mm</span>
+  <!-- ===== HEADER ===== -->
+  <header class="sheet-header">
+    <div class="header-left">
+      <img src="./images/Al_logo.png" alt="Ashok Leyland Logo" />
     </div>
-  </div>
 
-  <div class="header-right">
-    <div class="format-no">FORMAT NO: RLEF4907 / 12</div>
-  </div>
-</header>
+    <div class="header-center">
+      <h1>SOENEN PATROL INSPECTION CHECK SHEET</h1>
+      <div class="part-info">
+        <span id="hdrPart">PART NUMBER / LEVEL / HAND : — / — / —</span>
+        &nbsp;&nbsp; | &nbsp;&nbsp;
+        <span id="hdrFsmSpec">FSM LENGTH : — mm</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="format-no">FORMAT NO: RLEF4907 / 12</div>
+    </div>
+  </header>
+
+  <!-- ===== MAIN BODY ===== -->
   <main>
     <section class="controls">
       <div>
         <input id="fileInput" type="file" accept="application/pdf" />
-        <button id="extractBtn">Load &amp; Parse PDF</button>
+        <button id="extractBtn">Load & Parse PDF</button>
       </div>
       <div class="actions">
         <button id="generateFormBtn" disabled>Create Editable Form</button>
@@ -47,20 +50,19 @@
       <pre id="headerOut">No header parsed yet.</pre>
     </section>
 
-    <section id="formArea" class="panel">
-      <!-- Dynamic editable form will appear here -->
-    </section>
+    <section id="formArea" class="panel"></section>
 
     <section id="messages" class="panel">
       <div id="warnings"></div>
     </section>
   </main>
 
-  <!-- libs -->
+  <!-- ===== LIBRARIES (order matters) ===== -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+  <!-- ===== YOUR SCRIPT LAST ===== -->
   <script src="script.js"></script>
 </body>
 </html>
