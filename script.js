@@ -19,22 +19,23 @@ let pdfFile = null;
 let lastExtractedText = "";
 let parsedHeader = {}; // will hold partNumber, revision, hand, fsmLength, rootWidth, KBPC specs etc
 let parsedTableRows = []; // best-effort rows from main inspection table
+
 // -------------------- Update Header Fields --------------------
 function updateHeaderFields(parsedHeader) {
-  const partInfoElement = document.getElementById("partInfo");
-
   if (!parsedHeader) return;
+
+  const hdrPart = document.getElementById("hdrPart");
+  const hdrFsmSpec = document.getElementById("hdrFsmSpec");
+
+  if (!hdrPart || !hdrFsmSpec) return;
 
   const partNumber = parsedHeader.partNumber || "—";
   const revision = parsedHeader.revision || "—";
   const hand = parsedHeader.hand || "—";
   const fsmLength = parsedHeader.fsmLength || "—";
 
-  partInfoElement.innerHTML = `
-    PART NUMBER / LEVEL / HAND : ${partNumber} / ${revision} / ${hand}
-    &nbsp;&nbsp; | &nbsp;&nbsp;
-    FSM LENGTH : ${fsmLength} mm
-  `;
+  hdrPart.textContent = `PART NUMBER / LEVEL / HAND : ${partNumber} / ${revision} / ${hand}`;
+  hdrFsmSpec.textContent = `FSM LENGTH : ${fsmLength} mm`;
 }
 
 /* ---------- File load & preview ---------- */
@@ -52,7 +53,10 @@ fileInput.addEventListener("change", async (e) => {
 });
 
 extractBtn.addEventListener("click", async () => {
-  if (!pdfFile) { alert("Please select a PDF first."); return; }
+  if (!pdfFile) {
+    alert("Please select a PDF first.");
+    return;
+  }
   extractBtn.disabled = true;
   extractBtn.textContent = "Parsing...";
   try {
@@ -61,15 +65,22 @@ extractBtn.addEventListener("click", async () => {
     lastExtractedText = text;
     const hdr = parseHeader(text);
     parsedHeader = hdr;
+
     headerOut.textContent = JSON.stringify(hdr, null, 2);
-    updateHeaderFields(parsedHeader);
+
+    // Safeguard update for header info
+    if (document.getElementById("hdrPart") && document.getElementById("hdrFsmSpec")) {
+      updateHeaderFields(parsedHeader);
+    }
 
     // attempt to parse main table as rows:
     parsedTableRows = detectTableLines(text);
     generateFormBtn.disabled = false;
-    hdrPart.textContent = (hdr.partNumber ? `${hdr.partNumber} / ${hdr.revision} / ${hdr.hand}` : "—");
-    hdrFsmSpec.textContent = (hdr.fsmLength || "—");
-    showMessage("Parsed PDF. Click 'Create Editable Form' to build the inspection form (you can edit any spec).", "info");
+
+    showMessage(
+      "Parsed PDF. Click 'Create Editable Form' to build the inspection form (you can edit any spec).",
+      "info"
+    );
   } catch (err) {
     console.error(err);
     alert("Error while parsing PDF: " + err.message);
@@ -87,7 +98,8 @@ async function renderPDF(bytes) {
     const page = await pdf.getPage(1);
     const vp = page.getViewport({ scale: 1.1 });
     const canvas = document.createElement("canvas");
-    canvas.width = vp.width; canvas.height = vp.height;
+    canvas.width = vp.width;
+    canvas.height = vp.height;
     const ctx = canvas.getContext("2d");
     await page.render({ canvasContext: ctx, viewport: vp }).promise;
     pdfViewer.appendChild(canvas);
@@ -103,19 +115,35 @@ async function extractTextFromPDF(bytes) {
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    out += content.items.map(it => it.str).join(" ") + "\n---PAGE_BREAK---\n";
+    out += content.items.map((it) => it.str).join(" ") + "\n---PAGE_BREAK---\n";
   }
   return out;
 }
 
 /* ---------- parsing helpers (best-effort regexes) ---------- */
 function parseHeader(t) {
-  const h = { partNumber:null, revision:null, hand:null, date:null, formatNo:null, rootWidth:null, fsmLength:null, kbSpec:null, pcSpec:null };
+  const h = {
+    partNumber: null,
+    revision: null,
+    hand: null,
+    date: null,
+    formatNo: null,
+    rootWidth: null,
+    fsmLength: null,
+    kbSpec: null,
+    pcSpec: null,
+  };
   let m;
 
   // Part / Rev / Hand
-  m = t.match(/PART\s*NUMBER\s*\/\s*LEVEL\s*\/\s*HAND\s*[:\s\-]*([A-Z0-9_\-]+)\s*\/\s*([A-Z0-9_\-]+)\s*\/\s*([A-Z]+)/i);
-  if (m) { h.partNumber = m[1]; h.revision = m[2]; h.hand = m[3]; }
+  m = t.match(
+    /PART\s*NUMBER\s*\/\s*LEVEL\s*\/\s*HAND\s*[:\s\-]*([A-Z0-9_\-]+)\s*\/\s*([A-Z0-9_\-]+)\s*\/\s*([A-Z]+)/i
+  );
+  if (m) {
+    h.partNumber = m[1];
+    h.revision = m[2];
+    h.hand = m[3];
+  }
   // fallback
   if (!h.partNumber) {
     m = t.match(/PART\s*NUMBER\s*[:\s\-]*([A-Z0-9_\-]+)/i);
@@ -136,7 +164,10 @@ function parseHeader(t) {
 
   // KB & PC spec (try to find "KB & PC Code : Spec- 5 / 1" pattern)
   m = t.match(/KB\s*&\s*PC\s*Code\s*[:\-]*\s*Spec[-\s]*([0-9]+)\s*\/\s*([0-9]+)/i);
-  if (m) { h.kbSpec = m[1]; h.pcSpec = m[2]; }
+  if (m) {
+    h.kbSpec = m[1];
+    h.pcSpec = m[2];
+  }
 
   // Format number
   m = t.match(/FORMAT\s*NO\.?\s*[:\-]*\s*([A-Z0-9\/\s\-\_]+)/i);
@@ -147,7 +178,10 @@ function parseHeader(t) {
 
 /* Detect table-like lines (best-effort) */
 function detectTableLines(fullText) {
-  const lines = fullText.split(/\n|---PAGE_BREAK---/).map(s => s.replace(/\s{2,}/g,' ').trim()).filter(Boolean);
+  const lines = fullText
+    .split(/\n|---PAGE_BREAK---/)
+    .map((s) => s.replace(/\s{2,}/g, " ").trim())
+    .filter(Boolean);
   const rows = [];
   for (const line of lines) {
     if (/^\d+\b/.test(line)) {
@@ -155,39 +189,7 @@ function detectTableLines(fullText) {
     }
   }
   // convert rows to token arrays if possible
-  return rows.map(r => r.split(/\s+/));
-}
-
-/* ---------- Build the editable form UI ---------- */
-generateFormBtn.addEventListener("click", () => {
-  formArea.innerHTML = "";
-  warnings.innerHTML = "";
-  buildHeaderInputs();
-  buildMainTable();
-  buildFirstHolesSection();
-  buildLastHolesSection();
-  buildRootAndFlangeSection();
-  buildPartNoLocation();
-  buildBinaryChecks();
-  buildRemarksAndSign();
-  attachValidationListeners();
-  exportPdfBtn.disabled = false;
-  showMessage("Editable form created. Fill Actual values and mandatory fields. Use 'Export to PDF' to generate the report.", "info");
-});
-
-/* ---------- create small helper to create an input with attributes ---------- */
-function makeInput(attrs = {}) {
-  const inp = document.createElement("input");
-  inp.type = attrs.type || "text";
-  inp.value = attrs.value || "";
-  inp.className = attrs.className || "input-small";
-  if (attrs.placeholder) inp.placeholder = attrs.placeholder;
-  if (attrs.step) inp.step = attrs.step;
-  if (attrs.onchange) inp.addEventListener('change', attrs.onchange);
-  if (attrs.oninput) inp.addEventListener('input', attrs.oninput);
-  if (attrs.readOnly) inp.readOnly = true;
-  if (attrs.size) inp.size = attrs.size;
-  return inp;
+  return rows.map((r) => r.split(/\s+/));
 }
 
 /* ---------- Header inputs (mandatory fields) ---------- */
