@@ -306,6 +306,7 @@ const rwcol = document.createElement("div");
 rwcol.className = "col";
 rwcol.innerHTML = `<div class="small">ROOT WIDTH OF FSM (Spec / Act) mm</div>`;
 
+// Spec (readonly)
 const rootSpec = makeInput({
   className: "input-small",
   id: "rootSpec",
@@ -314,6 +315,7 @@ const rootSpec = makeInput({
   size: 6
 });
 
+// Act (editable)
 const rootAct = makeInput({
   className: "input-small",
   id: "rootAct",
@@ -322,18 +324,13 @@ const rootAct = makeInput({
   size: 6
 });
 
-rwcol.appendChild(rootSpec);
-rwcol.appendChild(document.createTextNode(" "));
-rwcol.appendChild(rootAct);
-
-// store Root Width Act reference for later
+// Hidden span to sync with other sections
 const rootActSpan = document.createElement("span");
-rootActSpan.id = "rootActRef"; // used by flange section
+rootActSpan.id = "rootActRef";
 rootActSpan.style.display = "none";
-rootActSpan.textContent = ""; // will mirror value
-rwcol.appendChild(rootActSpan);
+rwcol.append(rootSpec, document.createTextNode(" "), rootAct, rootActSpan);
 
-// keep rootAct value synced
+// keep hidden ref updated
 rootAct.addEventListener("input", () => {
   rootActSpan.textContent = rootAct.value;
 });
@@ -342,7 +339,6 @@ rootAct.addEventListener("input", () => {
 const fsmcol = document.createElement("div");
 fsmcol.className = "col";
 fsmcol.innerHTML = `<div class="small">FSM LENGTH (Spec / Act) mm</div>`;
-
 const fsmSpecInp = makeInput({
   className: "input-small",
   id: "fsmSpec",
@@ -350,24 +346,19 @@ const fsmSpecInp = makeInput({
   value: parsedHeader.fsmLength || "",
   size: 6
 });
-
 const fsmActInp = makeInput({
   className: "input-small",
   id: "fsmAct",
   placeholder: "Act (mm)",
   size: 6
 });
+fsmcol.append(fsmSpecInp, document.createTextNode(" "), fsmActInp);
 
-fsmcol.appendChild(fsmSpecInp);
-fsmcol.appendChild(document.createTextNode(" "));
-fsmcol.appendChild(fsmActInp);
-
-// Append both columns to same row
-row4.appendChild(rwcol);
-row4.appendChild(fsmcol);
+// append to form
+row4.append(rwcol, fsmcol);
 blk.appendChild(row4);
 
-// Debug check — will show in console
+// debug marker
 console.log("✅ Root Width fields added:", rootSpec, rootAct);
 
 /* ---------- Main inspection table ---------- */
