@@ -154,16 +154,30 @@ function parseHeader(t) {
 
 /* Detect table-like lines (best-effort) */
 function detectTableLines(fullText) {
-  const lines = fullText.split(/\n|---PAGE_BREAK---/).map(s => s.replace(/\s{2,}/g,' ').trim()).filter(Boolean);
+  if (!fullText) return [];
+  const lines = fullText
+    .split(/\n|---PAGE_BREAK---/)
+    .map(s => s.replace(/\s{2,}/g, " ").trim())
+    .filter(Boolean);
+
   const rows = [];
   for (const line of lines) {
-    if (/^\d+\b/.test(line)) {
+    // Match patterns like "1 ", " 1.", "01", etc.
+    if (/^\s*\d+(\.|-)?\s+\w+/.test(line)) {
       rows.push(line);
     }
   }
-  // convert rows to token arrays if possible
-  return rows.map(r => r.split(/\s+/));
+
+  // Fallback: try to catch multi-line numeric sequences if still empty
+  if (rows.length < 5) {
+    const allNums = fullText.match(/(\d+\s+[A-Z]{1,3}\s+\d+)/g);
+    if (allNums) rows.push(...allNums);
+  }
+
+  // Split each row into cell-like tokens
+  return rows.map(r => r.trim().split(/\s+/));
 }
+
 
 /* ---------- create small helper to create an input with attributes ---------- */
 function makeInput(attrs = {}) {
