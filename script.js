@@ -210,10 +210,20 @@ function buildHeaderInputs() {
   c1.appendChild(fsmSerial);
 
   // Inspectors
-  const c2 = document.createElement("div"); c2.className = "col";
-  c2.innerHTML = `<div class="small">INSPECTORS:</div>`;
-  const inspectors = makeInput({placeholder:"Enter Inspector name(s)", className:"input-small", id:"inspectors"});
-  c2.appendChild(inspectors);
+const c2 = document.createElement("div");
+c2.className = "col";
+c2.innerHTML = `<div class="small">INSPECTORS:</div>`;
+const inspector1 = makeInput({
+  placeholder: "Inspector 1",
+  className: "input-small",
+  id: "inspector1"
+});
+const inspector2 = makeInput({
+  placeholder: "Inspector 2",
+  className: "input-small",
+  id: "inspector2"
+});
+c2.append(inspector1, document.createTextNode(" "), inspector2);
 
   row.appendChild(c1); row.appendChild(c2);
   blk.appendChild(row);
