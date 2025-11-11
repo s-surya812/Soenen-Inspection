@@ -1,4 +1,4 @@
-/* ===== HEADER ===== */
+/* HEADER */
 header.sheet-header{
   position:sticky;top:0;z-index:10;
   display:flex;justify-content:space-between;align-items:center;
@@ -10,10 +10,10 @@ header.sheet-header{
 .part-info{font-size:13px;margin-top:3px}
 .format-no{font-weight:700;font-size:13px}
 
-/* ===== BASE ===== */
+/* BASE */
 :root{
-  --accent:#005fcc;--green:#036703;--green-fill:#d8ffd8;
-  --red:#d60000;--pink-fill:#ffd6d6;--warn:#ff8c00;--warn-fill:#fff6cc;
+  --accent:#005fcc;--green:#076a07;--green-fill:#dfffe0;
+  --red:#cc0000;--pink-fill:#ffd9d9;--warn:#ff8c00;--warn-fill:#fff6cc;
   --font:"Segoe UI",Roboto,Arial,sans-serif
 }
 *{box-sizing:border-box}
@@ -24,22 +24,26 @@ main{padding:16px;display:grid;gap:16px}
 .panel{background:#fff;padding:12px;border:1px solid #e6e6e6;border-radius:6px}
 #headerOut{white-space:pre-wrap}
 
-/* ===== FORM ===== */
+/* FORM */
 .form-block{border:1px solid #bbb;padding:10px;border-radius:6px;background:#fff;margin-bottom:12px}
+.block-title{font-weight:700;margin-bottom:6px}
+
 .form-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;margin:8px 0}
-.form-row .col{flex:1 1 48%;min-width:280px}
+.col{flex:1 1 48%;min-width:280px}
 .small{font-size:12px;color:#333}
 .input{padding:6px;border:1px solid #888;border-radius:4px;width:100%}
-.input-inline{display:inline-block;min-width:80px;width:auto;margin-right:6px}
+.inline{display:inline-block;min-width:80px;width:auto;margin-right:6px}
 
-/* Table */
+/* TABLE */
 .table{width:100%;border-collapse:collapse;margin-top:8px}
 .table th,.table td{border:1px solid #000;padding:6px;text-align:center;font-size:13px}
 .table th{background:#efefef;font-weight:700}
 
-/* Results */
+/* RESULT COLORS */
 .ok-cell{color:var(--green);background:var(--green-fill);font-weight:600}
 .nok-cell{color:var(--red);background:var(--pink-fill);font-weight:600}
 
-/* Footer */
-.export-footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+/* BINARY BUTTONS */
+.binary button{padding:4px 8px;border:1px solid #aaa;border-radius:4px;background:#f6f6f6;cursor:pointer;margin-right:6px}
+.binary .on-ok{background:var(--green-fill);color:var(--green);border-color:var(--green)}
+.binary .on-nok{background:var(--pink-fill);color:var(--red);border-color:var(--red)}
