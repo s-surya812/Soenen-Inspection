@@ -3,66 +3,58 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Soenen Inspection – Phase 2</title>
+  <title>Soenen Inspection – Excel Driven</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- ===== HEADER ===== -->
-  <header class="sheet-header">
-    <div class="header-left">
-      <img src="./images/Al_logo.png" alt="Ashok Leyland Logo" />
+<header class="sheet-header">
+  <div class="header-left">
+    <img src="./images/Al_logo.png" alt="Ashok Leyland Logo">
+  </div>
+
+  <div class="header-center">
+    <h1>SOENEN PATROL INSPECTION CHECK SHEET</h1>
+    <div class="part-info">
+      <span id="hdrPart">PART NUMBER / LEVEL / HAND : — / — / —</span>
+      &nbsp;&nbsp; | &nbsp;&nbsp;
+      <span id="hdrFsmSpec">FSM LENGTH : — mm</span>
     </div>
+  </div>
 
-    <div class="header-center">
-      <h1>SOENEN PATROL INSPECTION CHECK SHEET</h1>
-      <div class="part-info">
-        <span id="hdrPart">PART NUMBER / LEVEL / HAND : — / — / —</span>
-        &nbsp;&nbsp; | &nbsp;&nbsp;
-        <span id="hdrFsmSpec">FSM LENGTH : — mm</span>
-      </div>
+  <div class="header-right">
+    <div class="format-no">FORMAT NO: RLEF4907 / 12</div>
+  </div>
+</header>
+
+<main>
+  <section class="controls">
+    <div>
+      <input id="fileInput" type="file" accept=".xlsx,.xls" />
+      <button id="parseExcelBtn">Load &amp; Parse Excel</button>
     </div>
-
-    <div class="header-right">
-      <div class="format-no">FORMAT NO: RLEF4907 / 12</div>
+    <div class="actions">
+      <button id="generateFormBtn" disabled>Create Editable Form</button>
+      <button id="exportPdfBtn" disabled>Export to PDF</button>
     </div>
-  </header>
+  </section>
 
-  <!-- ===== MAIN BODY ===== -->
-  <main>
-    <section class="controls">
-      <div>
-        <input id="fileInput" type="file" accept="application/pdf" />
-        <button id="extractBtn">Load & Parse PDF</button>
-      </div>
-      <div class="actions">
-        <button id="generateFormBtn" disabled>Create Editable Form</button>
-        <button id="exportPdfBtn" disabled>Export to PDF</button>
-      </div>
-    </section>
+  <section id="preview" class="panel">
+    <h2>Source Summary</h2>
+    <pre id="headerOut">Upload Excel and click "Load & Parse Excel".</pre>
+  </section>
 
-    <section id="preview" class="panel">
-      <h2>PDF Preview</h2>
-      <div id="pdfViewer">No PDF loaded</div>
-    </section>
+  <section id="formArea" class="panel"><!-- built dynamically --></section>
 
-    <section id="parsed" class="panel">
-      <h2>Parsed Header</h2>
-      <pre id="headerOut">No header parsed yet.</pre>
-    </section>
+  <section id="messages" class="panel">
+    <div id="warnings"></div>
+  </section>
+</main>
 
-    <section id="formArea" class="panel"></section>
+<!-- libs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    <section id="messages" class="panel">
-      <div id="warnings"></div>
-    </section>
-  </main>
-
-  <!-- ===== LIBRARIES (order matters) ===== -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-  <!-- ===== YOUR SCRIPT LAST ===== -->
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
