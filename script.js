@@ -1,201 +1,304 @@
-/* Excel → Form (Option A for slots: first number = vertical) */
-const fileInput = document.getElementById('fileInput');
-const parseExcelBtn = document.getElementById('parseExcelBtn');
-const buildFormBtn   = document.getElementById('buildFormBtn');
-const exportPdfBtn   = document.getElementById('exportPdfBtn');
-const headerOut = document.getElementById('headerOut');
-const formArea  = document.getElementById('formArea');
-const warnings  = document.getElementById('warnings');
-const hdrPart   = document.getElementById('hdrPart');
-const hdrFsmSpec= document.getElementById('hdrFsmSpec');
+/* Soenen Excel → Interactive form (fully replicates filled format) */
 
-let workbook, rows, parsed = {};
-let tableRows = []; // up to 45
+const $ = sel => document.querySelector(sel);
+const fileInput      = $('#fileInput');
+const parseExcelBtn  = $('#parseExcelBtn');
+const buildFormBtn   = $('#buildFormBtn');
+const exportPdfBtn   = $('#exportPdfBtn');
+const headerOut      = $('#headerOut');
+const formArea       = $('#formArea');
+const warnings       = $('#warnings');
+const hdrPart        = $('#hdrPart');
+const hdrFsmSpec     = $('#hdrFsmSpec');
 
-/* Helpers */
-const show = (m, type="info")=>{
-  warnings.style.padding="8px"; warnings.style.borderRadius="6px"; warnings.style.marginTop="6px";
+let rows2D = [];          // 2D array of sheet
+let parsed  = {};         // header & meta
+let tableRows = [];       // up to 45
+let extreme = {};         // bottom "dimension verification" blocks
+
+/* Utils */
+const show = (m,t="info")=>{
+  warnings.style.padding="8px";warnings.style.borderRadius="6px";warnings.style.marginTop="6px";
   warnings.textContent=m;
-  if(type==="warn"){warnings.style.background="#fff6cc";warnings.style.color="#ff8c00";}
+  if(t==="warn"){warnings.style.background="#fff6cc";warnings.style.color="#ff8c00";}
   else{warnings.style.background="#e8f4ff";warnings.style.color="#005fcc";}
 };
 const clearMsg=()=>{warnings.textContent="";warnings.removeAttribute('style');};
 const round=(n,d=2)=>Math.round(n*10**d)/10**d;
 
-/* Slot parse — Option A */
-function parseSpecDia(cell) {
-  if(cell==null) return {isSlot:false, dia:NaN, v:NaN, h:NaN, raw:""};
-  const raw = String(cell).trim();
-  const m = raw.match(/^(\d+(?:\.\d+)?)\s*[*xX]\s*(\d+(?:\.\d+)?)/);
-  if(m){
-    // Option A: first number is vertical
-    return {isSlot:true, v:parseFloat(m[1]), h:parseFloat(m[2]), raw};
+/* Find a row index that has all labels */
+function findRowIdxByLabels(labels){
+  return rows2D.findIndex(r => {
+    const s = r.map(v=>String(v||'').toLowerCase());
+    return labels.every(lbl => s.some(x=>x.includes(lbl)));
+  });
+}
+/* Find a cell by regex anywhere; return {r,c,val} */
+function findCellByRegex(rx){
+  for(let r=0;r<rows2D.length;r++){
+    for(let c=0;c<rows2D[r].length;c++){
+      const val = rows2D[r][c];
+      if(val!=null && rx.test(String(val))) return {r,c,val};
+    }
   }
-  const d = parseFloat(raw);
-  return {isSlot:false, dia:isFinite(d)?d:NaN, v:NaN, h:NaN, raw};
+  return null;
 }
 
-/* Dia tolerance */
-function diaOk(spec, actual){
-  if(isNaN(spec) || isNaN(actual)) return null; // not decidable
-  if (spec <= 10.7) return (actual >= spec && actual <= spec + 0.4);
-  if (spec >= 11.7) return (actual >= spec && actual <= spec + 0.5);
-  // between 10.7 and 11.7 → +0.5 (your note)
-  return (actual >= spec && actual <= spec + 0.5);
+/* Parse slot/diameter spec: Option A (first = Height/Vertical) */
+function parseSpecDia(raw){
+  const s = String(raw||'').trim();
+  const m = s.match(/^(\d+(?:\.\d+)?)\s*[*xX]\s*(\d+(?:\.\d+)?)/);
+  if(m) return {isSlot:true, H:parseFloat(m[1]), W:parseFloat(m[2]), raw:s};
+  const d = parseFloat(s);
+  return {isSlot:false, dia: isFinite(d)?d:NaN, raw:s};
 }
-/* Slot tolerance: -0 / +0.5 for both height & width */
-const slotOk=(s,a)=> (isFinite(s)&&isFinite(a)) ? (a>=s && a<=s+0.5) : null;
 
-/* Offset tolerance vs X position */
+/* Dia tolerances */
+function diaHoleOK(spec, act){
+  if(!isFinite(spec) || !isFinite(act)) return null;
+  if(spec <= 10.7) return (act >= spec && act <= spec + 0.4);
+  if(spec >= 11.7) return (act >= spec && act <= spec + 0.5);
+  return (act >= spec && act <= spec + 0.5); // 10.7..11.7 → +0.5 per your note
+}
+/* Slot tolerances: -0 / +0.5 both H & W */
+function diaSlotOK(spec, act){ // spec,act single side
+  if(!isFinite(spec) || !isFinite(act)) return null;
+  return (act >= spec && act <= spec + 0.5);
+}
+/* Offset tolerance by X & FSM length */
 function offsetTol(x, fsmLen){
   if(!isFinite(x)||!isFinite(fsmLen)) return 1;
-  if(x<=200 || x>=fsmLen-200) return 1.5;
-  return 1;
+  return (x<=200 || x>=fsmLen-200) ? 1.5 : 1;
 }
 
-/* Parse Excel to 2D array of strings */
+/* Excel → 2D array and parse content */
 parseExcelBtn.addEventListener('click', async ()=>{
   const f = fileInput.files?.[0];
-  if(!f){ alert("Select the Excel file (.xlsx)"); return; }
+  if(!f){ alert('Please choose the final macro sheet (.xlsx)'); return; }
 
-  const data = await f.arrayBuffer();
-  workbook = XLSX.read(data, {type:'array'});
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  rows = XLSX.utils.sheet_to_json(sheet, {header:1, raw:true}); // 2D array
+  const buf = await f.arrayBuffer();
+  const wb = XLSX.read(buf, {type:'array'});
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  rows2D = XLSX.utils.sheet_to_json(sheet, {header:1, raw:true});
 
-  // Extract header info by searching strings
+  // ---- HEADER extraction (label-based, robust) ----
   parsed = {
-    partNumber:null, revision:null, hand:null,
-    totalHoles:null, rootWidth:null, fsmLength:null,
-    kbSpec:null, pcSpec:null, matrix:null
+    partNumber: null, revision: null, hand: null,
+    totalHoles: null, rootWidth: null, fsmLength: null,
+    kbSpec: null, pcSpec: null, matrix: null
   };
 
-  for(const r of rows){
-    const line = (r.join(' ')||'').toString();
-
-    if(/PART\s*NUMBER\s*\/\s*LEVEL\s*\/\s*HAND/i.test(line)){
-      // The value is usually in the next non-empty cell(s) in that row
-      const txt = r.find((c,idx)=> idx>0 && c && typeof c ==='string' && /[A-Z0-9]/i.test(c));
-      if(txt){
-        // e.g. "FH140813 / O2 / LH"
-        const m = txt.match(/([A-Z0-9\-_]+)\s*\/\s*([A-Z0-9\-_]+)\s*\/\s*([A-Z]+)/i);
-        if(m){ parsed.partNumber=m[1]; parsed.revision=m[2]; parsed.hand=m[3]; }
-      }
-    }
-    if(/TOTAL\s*HOLES\s*COUNT/i.test(line)){
-      const n = String(line).match(/COUNT\s*[:\-]?\s*(\d+)/i);
-      if(n) parsed.totalHoles = parseInt(n[1],10);
-    }
-    if(/ROOT\s*WIDTH\s*OF\s*FSM/i.test(line)){
-      const m = String(line).match(/Spec[-\s]*([0-9.]+)/i);
-      if(m) parsed.rootWidth = parseFloat(m[1]);
-    }
-    if(/FSM\s*LENGTH/i.test(line)){
-      const m = String(line).match(/Spec[-\s]*([0-9.]+)/i);
-      if(m) parsed.fsmLength = parseFloat(m[1]);
-    }
-    if(/KB\s*&\s*PC\s*Code/i.test(line)){
-      const m = String(line).match(/Spec[-\s]*([0-9]+)\s*\/\s*([0-9]+)/i);
-      if(m){ parsed.kbSpec = m[1]; parsed.pcSpec = m[2]; }
-    }
-    if(/Matrix\s*used/i.test(line)){
-      const m = String(line).match(/Matrix\s*used\s*[:\-]?\s*([A-Za-z0-9]+)/i);
-      if(m) parsed.matrix = m[1];
+  // Part / Level / Hand
+  const partCell = findCellByRegex(/PART\s*NUMBER\s*\/\s*LEVEL\s*\/\s*HAND/i);
+  if(partCell){
+    const row = rows2D[partCell.r];
+    // find "X / Y / Z" on same row
+    const val = row.find((v,idx)=> idx>partCell.c && v && /\/\s*.+\s*\/.+/.test(String(v)));
+    if(val){
+      const m = String(val).match(/([A-Z0-9\-_]+)\s*\/\s*([A-Z0-9\-_]+)\s*\/\s*([A-Z]+)/i);
+      if(m){ parsed.partNumber=m[1]; parsed.revision=m[2]; parsed.hand=m[3]; }
     }
   }
 
-  // Find table header row (contains "Spec Dia")
-  let headerIdx = rows.findIndex(r=> r.some(c => String(c||'').toLowerCase().includes('spec dia')));
-  if(headerIdx === -1){
-    show("Could not find table header. Please ensure the template matches.", "warn");
+  // TOTAL HOLES COUNT
+  const thc = findCellByRegex(/TOTAL\s*HOLES\s*COUNT/i);
+  if(thc){
+    const row = rows2D[thc.r];
+    const n = row.slice(thc.c).find(v=>/\d+/.test(String(v||'')));
+    if(n) parsed.totalHoles = parseInt(n,10);
   }
 
-  // Map columns by title
-  const headerRow = rows[headerIdx] || [];
-  const findCol = (label)=> headerRow.findIndex(c => String(c||'').toLowerCase().includes(label));
-  const colMap = {
-    sl: findCol('sl'),
-    press: findCol('press'),
-    selid: findCol('sel id'),
-    ref: findCol('ref'),
-    x: findCol('x-axis'),
-    specYZ: findCol('spec') ,       // "Spec (Y or Z axis)"
-    specDia: findCol('spec dia'),
-    // the rest will be built later (value from hole edge, actual dia, actual yz, offset)
+  // ROOT WIDTH OF FSM : Spec- N mm
+  const rw = findCellByRegex(/ROOT\s*WIDTH\s*OF\s*FSM/i);
+  if(rw){
+    const line = rows2D[rw.r].slice(rw.c).join(' ');
+    const m = String(line).match(/Spec[-\s]*([0-9.]+)/i);
+    if(m) parsed.rootWidth = parseFloat(m[1]);
+  }
+
+  // FSM LENGTH : Spec- N mm
+  const fl = findCellByRegex(/FSM\s*LENGTH/i);
+  if(fl){
+    const line = rows2D[fl.r].slice(fl.c).join(' ');
+    const m = String(line).match(/Spec[-\s]*([0-9.]+)/i);
+    if(m) parsed.fsmLength = parseFloat(m[1]);
+  }
+
+  // KB & PC Code : Spec- a / b
+  const kbpc = findCellByRegex(/KB\s*&\s*PC\s*Code/i);
+  if(kbpc){
+    const line = rows2D[kbpc.r].slice(kbpc.c).join(' ');
+    const m = String(line).match(/Spec[-\s]*([0-9]+)\s*\/\s*([0-9]+)/i);
+    if(m){ parsed.kbSpec=m[1]; parsed.pcSpec=m[2]; }
+  }
+
+  // Matrix used:
+  const mat = findCellByRegex(/Matrix\s*used/i);
+  if(mat){
+    const row = rows2D[mat.r];
+    const val = row.slice(mat.c).find(v=>v && v!==':');
+    if(val) parsed.matrix = String(val);
+  }
+
+  // ---- MAIN TABLE (find header row with "X-axis" & "Spec Dia") ----
+  const headerIdx = findRowIdxByLabels(['x-axis','spec dia']);
+  if(headerIdx === -1){ show('Could not find main table header. Check the template text.', 'warn'); return; }
+
+  const headerRow = rows2D[headerIdx];
+  const colIndex = (label) => headerRow.findIndex(v => String(v||'').toLowerCase().includes(label));
+
+  const map = {
+    sl    : colIndex('sl'),
+    press : colIndex('press'),
+    selid : colIndex('sel id'),
+    ref   : colIndex('ref'),
+    xaxis : colIndex('x-axis'),
+    specyz: colIndex('spec (y'),     // "Spec (Y or Z axis)"
+    specdia: colIndex('spec dia'),
+    valEdge: colIndex('value from hole edge'), // for completeness (usually blank in source)
+    actDia : colIndex('actual dia'),
+    actYZ  : colIndex('actual y or z'),
+    offset : colIndex('offset')
   };
 
-  // Collect up to 45 rows or until first fully-empty line
   tableRows = [];
-  for(let i = headerIdx+1; i < rows.length && tableRows.length < 45; i++){
-    const r = rows[i] || [];
-    const firstCells = [colMap.sl,colMap.press,colMap.selid,colMap.ref,colMap.x,colMap.specYZ,colMap.specDia]
-      .map(ci => ci>=0 ? r[ci] : '')
-      .map(v => (v===undefined || v===null) ? '' : v);
+  for(let r=headerIdx+1; r<rows2D.length && tableRows.length<45; r++){
+    const row = rows2D[r] || [];
+    const cols = [map.sl,map.press,map.selid,map.ref,map.xaxis,map.specyz,map.specdia]
+      .map(ci => ci>=0 ? row[ci] : '');
 
-    // stop if completely empty
-    if(firstCells.every(v => String(v).trim()==='')) break;
+    if(cols.every(v => String(v||'').trim()==='')) break;
 
     tableRows.push({
-      sl: firstCells[0],
-      press: firstCells[1],
-      selid: firstCells[2],
-      ref: firstCells[3],
-      x: parseFloat(firstCells[4]) || NaN,
-      specYZ: parseFloat(firstCells[5]),
-      specDiaRaw: firstCells[6] // could be "9*12"
+      sl: cols[0], press: cols[1], selid: cols[2], ref: cols[3],
+      x: parseFloat(cols[4]),
+      specYZ: parseFloat(cols[5]),
+      specDiaRaw: cols[6]
     });
   }
 
-  headerOut.textContent = JSON.stringify({header:parsed, rows:tableRows.slice(0,5)}, null, 2);
-  if(parsed.partNumber) hdrPart.textContent = `PART NUMBER / LEVEL / HAND : ${parsed.partNumber} / ${parsed.revision||'—'} / ${parsed.hand||'—'}`;
+  // ---- EXTREME ENDS (Dimension verification) ----
+  extreme = {
+    // order: Web PWX, Web PW, Web PWM, Top Flange PFF, Bottom Flange PFB
+    rows: ['PWX','PW','PWM','PFF','PFB'],
+    first: {spec:[], actual:[], offset:[]},
+    last : {spec:[], actual:[], offset:[]}
+  };
+  const dimIdx = findRowIdxByLabels(['dimension verification','extreme ends of fsm']);
+  if(dimIdx !== -1){
+    // Locate headers "First holes of FSM - from front end" and "Last holes ..."
+    const hdrRow = rows2D[dimIdx+1] || [];
+    // We’ll scan following ~10 rows to fetch 5 lines for X Axis set
+    let start = dimIdx;
+    // find "X Axis" label row
+    const xAxisRowIdx = rows2D.findIndex((r,i)=> i>dimIdx && r.some(v=>String(v||'').toLowerCase().includes('x axis')));
+    if(xAxisRowIdx !== -1){
+      // After "X Axis" line, the next 5 lines correspond to PWX,PW,PWM,PFF,PFB (per your sample)
+      for(let i=0;i<5;i++){
+        const r = rows2D[xAxisRowIdx+1+i] || [];
+        // try to find 3 numbers on "first holes" side and 3 numbers on "last holes" side
+        const nums = r.map(v=>String(v||''));
+        // naive numeric scan: pick left block (first holes) and right block (last holes)
+        const onlyNums = nums.map(s=> s.match(/^-?\d+(\.\d+)?$/) ? parseFloat(s) : null);
+        // heuristic: pick first number trio and last number trio
+        const left = onlyNums.filter(n=>n!==null).slice(0,3);
+        const right= onlyNums.filter(n=>n!==null).slice(-3);
+        extreme.first.spec.push(left[0] ?? null);
+        extreme.first.actual.push(left[1] ?? null);
+        extreme.first.offset.push(left[2] ?? null);
+        extreme.last.spec.push(right[0] ?? null);
+        extreme.last.actual.push(right[1] ?? null);
+        extreme.last.offset.push(right[2] ?? null);
+      }
+    }
+  }
+
+  // Update sticky header
+  if(parsed.partNumber){
+    hdrPart.textContent = `PART NUMBER / LEVEL / HAND : ${parsed.partNumber} / ${parsed.revision||'—'} / ${parsed.hand||'—'}`;
+  }
   if(parsed.fsmLength) hdrFsmSpec.textContent = `FSM LENGTH : ${parsed.fsmLength} mm`;
+
+  headerOut.textContent = JSON.stringify({
+    header: parsed,
+    firstRowsPreview: tableRows.slice(0,5),
+    extremePreview: extreme
+  }, null, 2);
+
   buildFormBtn.disabled = false;
   clearMsg();
 });
 
-/* Build form */
+/* Build full form (all blocks) */
 buildFormBtn.addEventListener('click', ()=>{
   formArea.innerHTML = "";
-  clearMsg();
 
-  // --- Header / Mandatory ---
-  const blkH = document.createElement('div');
-  blkH.className = "form-block";
-  blkH.innerHTML = `<strong>Header / Mandatory fields</strong>`;
-  const r1 = document.createElement('div'); r1.className='form-row';
+  // ===== Header / Mandatory =====
+  const blkH = block('Header / Mandatory fields');
 
-  const c1 = document.createElement('div'); c1.className='col';
-  c1.innerHTML = `<div class="small">KB &amp; PC Code (Spec / Act)</div>`;
-  const kbSpec = mkInput({value:parsed.kbSpec||"", readOnly:true, className:'input-inline'});
-  const kbAct  = mkInput({placeholder:'KB Act', className:'input-inline', id:'kbAct'});
-  const pcSpec = mkInput({value:parsed.pcSpec||"", readOnly:true, className:'input-inline'});
-  const pcAct  = mkInput({placeholder:'PC Act', className:'input-inline', id:'pcAct'});
-  c1.append(kbSpec, document.createTextNode(' / '), kbAct, document.createTextNode('    '),
-            pcSpec, document.createTextNode(' / '), pcAct);
+  // KB & PC + Inspectors + sample times/matrix + totals + root width + fsm length + retake/patrol
+  const row1 = row();
+  const c1 = col(`
+    <div class="small">FSM Serial Number:</div>
+  `);
+  c1.append(input({placeholder:'Enter FSM Serial No', id:'fsmSerial'}));
 
-  const c2 = document.createElement('div'); c2.className='col';
-  c2.innerHTML = `<div class="small">ROOT WIDTH OF FSM (Spec / Act) mm  |  FSM LENGTH (Spec / Act) mm</div>`;
-  const rootSpec = mkInput({value:parsed.rootWidth||"", readOnly:true, className:'input-inline', id:'rootSpec'});
-  const rootAct  = mkInput({placeholder:'Act', className:'input-inline', id:'rootAct'});
-  const fsmSpec  = mkInput({value:parsed.fsmLength||"", readOnly:true, className:'input-inline', id:'fsmSpec'});
-  const fsmAct   = mkInput({placeholder:'Act', className:'input-inline', id:'fsmAct'});
-  c2.append(rootSpec, document.createTextNode(' '), rootAct,
-            document.createTextNode('    '), fsmSpec, document.createTextNode(' '), fsmAct);
+  const c2 = col(`
+    <div class="small">Inspectors:</div>
+  `);
+  c2.append(input({placeholder:'Inspector 1', id:'inspector1', className:'input inline'}),
+            input({placeholder:'Inspector 2', id:'inspector2', className:'input inline'}));
+  row1.append(c1,c2); blkH.append(row1);
 
-  r1.append(c1,c2);
-  blkH.append(r1);
+  const row2 = row();
+  const c3 = col(`<div class="small">KB &amp; PC Code (Spec / Act)</div>`);
+  c3.append(input({value:parsed.kbSpec||'', readOnly:true, className:'input inline'}),
+           text(' / '),
+           input({placeholder:'KB Act', id:'kbAct', className:'input inline'}),
+           text('    '),
+           input({value:parsed.pcSpec||'', readOnly:true, className:'input inline'}),
+           text(' / '),
+           input({placeholder:'PC Act', id:'pcAct', className:'input inline'}));
+
+  const c4 = col(`<div class="small">Matrix used:</div>`);
+  c4.append(input({value:parsed.matrix||'', id:'matrixUsed'}));
+  row2.append(c3,c4); blkH.append(row2);
+
+  const row3 = row();
+  const c5 = col(`<div class="small">SAMPLE GIVEN TIME :</div>`);
+  c5.append(input({placeholder:'', className:'input inline'}), text(' AM/PM '),
+            input({placeholder:'', className:'input inline'}), text(' SAMPLE CLEARED TIME : '),
+            input({placeholder:'', className:'input inline'}), text(' AM/PM'));
+  const c6 = col(`<div class="small">TOTAL HOLES COUNT :</div>`);
+  c6.append(input({value:parsed.totalHoles||'', id:'holesAct'}));
+  row3.append(c5,c6); blkH.append(row3);
+
+  const row4 = row();
+  const c7 = col(`<div class="small">ROOT WIDTH OF FSM (Spec / Act) mm</div>`);
+  c7.append(input({value:parsed.rootWidth||'', readOnly:true, className:'input inline', id:'rootSpec'}),
+            input({placeholder:'Act', className:'input inline', id:'rootAct'}));
+  const c8 = col(`<div class="small">FSM LENGTH (Spec / Act) mm</div>`);
+  c8.append(input({value:parsed.fsmLength||'', readOnly:true, className:'input inline', id:'fsmSpec'}),
+            input({placeholder:'Act', className:'input inline', id:'fsmAct'}));
+  row4.append(c7,c8); blkH.append(row4);
+
+  const row5 = row();
+  const c9 = col(`<div class="small">Retake / Patrol</div>`);
+  c9.append(input({placeholder:'Retake', className:'input inline'}),
+            input({placeholder:'Patrol', className:'input inline'}));
+  row5.append(c9); blkH.append(row5);
+
   formArea.appendChild(blkH);
 
-  // --- Main Inspection Table ---
-  const blkT = document.createElement('div'); blkT.className='form-block';
-  blkT.innerHTML = `<strong>Main Inspection Table</strong>`;
+  // ===== Main Inspection Table =====
+  const blkT = block('Main Inspection Table');
   const table = document.createElement('table'); table.className='table';
   table.innerHTML = `
     <thead><tr>
-      <th>Sl No</th><th>Press</th><th>Sel ID</th><th>Ref</th>
-      <th>X-axis</th><th>Spec (Y or Z)</th><th>Spec Dia</th>
+      <th>Sl No</th><th>Press</th><th>Sel ID</th><th>Ref</th><th>X-axis</th>
+      <th>Spec (Y or Z)</th><th>Spec Dia</th>
       <th>Value from Hole edge (Act)</th>
-      <th>Actual Dia / Slot (H x W)</th>
+      <th>Actual Dia / Slot (H × W)</th>
       <th>Actual Y or Z</th><th>Offset (Actual - Spec)</th><th>Result</th>
     </tr></thead>
   `;
@@ -204,90 +307,70 @@ buildFormBtn.addEventListener('click', ()=>{
   tableRows.forEach((r, idx)=>{
     const tr = document.createElement('tr');
 
-    // read-only first 7
     const ro = v => roCell(v);
-    tr.append(tdWrap(ro(r.sl)));
-    tr.append(tdWrap(ro(r.press)));
-    tr.append(tdWrap(ro(r.selid)));
-    tr.append(tdWrap(ro(r.ref)));
-    tr.append(tdWrap(ro(isFinite(r.x)?r.x:"")));
-    tr.append(tdWrap(ro(isFinite(r.specYZ)?r.specYZ:"")));
+    tr.append(td(ro(r.sl)));
+    tr.append(td(ro(r.press)));
+    tr.append(td(ro(r.selid)));
+    tr.append(td(ro(r.ref)));
+    tr.append(td(ro(isFinite(r.x)?r.x:'')));
+    tr.append(td(ro(isFinite(r.specYZ)?r.specYZ:'')));
+    tr.append(td(ro(String(r.specDiaRaw ?? ''))));
 
-    // spec dia cell (read-only text; show raw like "9*12")
-    tr.append(tdWrap(ro(r.specDiaRaw)));
+    const valEdge = input({className:'input'});   // free numeric
+    const spec = parseSpecDia(r.specDiaRaw);
 
-    // Value from hole edge (Act)
-    const valEdge = mkInput({className:'input', placeholder:''});
-
-    // Actual dia / slot
-    const specDia = parseSpecDia(r.specDiaRaw);
-    let diaContainer = document.createElement('div');
-
-    if(specDia.isSlot){
-      // Two inputs: Height (vertical), Width (horizontal)
-      const dH = mkInput({className:'input-inline', placeholder:`H (spec ${specDia.v})`});
-      const dW = mkInput({className:'input-inline', placeholder:`W (spec ${specDia.h})`});
-      dH.dataset.type="slotH"; dW.dataset.type="slotW";
-      diaContainer.append(dH, document.createTextNode(' × '), dW);
+    let diaWrap = document.createElement('div');
+    if(spec.isSlot){
+      diaWrap.append(
+        input({className:'input inline', placeholder:`H (spec ${spec.H})`, 'data-role':'slotH'}),
+        text(' × '),
+        input({className:'input inline', placeholder:`W (spec ${spec.W})`, 'data-role':'slotW'})
+      );
     }else{
-      const d = mkInput({className:'input-inline', placeholder:`Dia (spec ${specDia.dia||''})`});
-      d.dataset.type="holeDia";
-      diaContainer.append(d);
+      diaWrap.append(input({className:'input inline', placeholder:`Dia (spec ${spec.dia||''})`, 'data-role':'holeDia'}));
     }
 
-    // Actual Y/Z, Offset, Result
-    const actYZ = mkInput({className:'input'});
-    const offTD = document.createElement('div');
-    const resTD = document.createElement('div');
+    const actYZ = input({className:'input'});
+    const offDiv = document.createElement('div');
+    const resDiv = document.createElement('div');
 
-    // events → recalc
-    const onChange = ()=> {
-      const fsmLen = parseFloat(document.getElementById('fsmSpec')?.value) || parsed.fsmLength || NaN;
-      const x = r.x;
-      const specY = r.specYZ;
-      const actualY = parseFloat(actYZ.value);
+    const recalc = ()=>{
+      const fsmLen = parseFloat($('#fsmSpec')?.value) || parsed.fsmLength || NaN;
+      const offset = (isFinite(parseFloat(actYZ.value)) && isFinite(r.specYZ))
+        ? (parseFloat(actYZ.value) - r.specYZ) : NaN;
+      offDiv.textContent = isFinite(offset) ? round(offset,2) : '';
 
-      // Offset = Actual Y/Z - Spec Y/Z   (header says: Actual - Spec)
-      let offset = (isFinite(actualY) && isFinite(specY)) ? (actualY - specY) : NaN;
-      offTD.textContent = isFinite(offset)? round(offset,2) : '';
-
-      // Dia checks
       let diaOK = null;
-      if(specDia.isSlot){
-        const dH = diaContainer.querySelector('[data-type="slotH"]');
-        const dW = diaContainer.querySelector('[data-type="slotW"]');
-        const aH = parseFloat(dH.value), aW = parseFloat(dW.value);
-        const okH = slotOk(specDia.v, aH);
-        const okW = slotOk(specDia.h, aW);
-        diaOK = (okH === null || okW === null) ? null : (okH && okW);
+      if(spec.isSlot){
+        const aH = parseFloat(diaWrap.querySelector('[data-role="slotH"]')?.value);
+        const aW = parseFloat(diaWrap.querySelector('[data-role="slotW"]')?.value);
+        const okH = diaSlotOK(spec.H, aH);
+        const okW = diaSlotOK(spec.W, aW);
+        diaOK = (okH===null || okW===null) ? null : (okH && okW);
       }else{
-        const d = diaContainer.querySelector('[data-type="holeDia"]');
-        const a = parseFloat(d.value);
-        diaOK = diaOk(specDia.dia, a);
+        const aD = parseFloat(diaWrap.querySelector('[data-role="holeDia"]')?.value);
+        diaOK = diaHoleOK(spec.dia, aD);
       }
 
-      // Offset tolerance
-      const tol = offsetTol(x, fsmLen);
-      const offOK = (isFinite(offset)) ? (Math.abs(offset) <= tol) : null;
+      const tol = offsetTol(r.x, fsmLen);
+      const offOK = isFinite(offset) ? (Math.abs(offset) <= tol) : null;
 
-      // Result
       let allOk = null;
-      if(diaOK === null || offOK === null) allOk = null;
+      if(diaOK===null || offOK===null) allOk = null;
       else allOk = (diaOK && offOK);
 
-      resTD.textContent = (allOk===null) ? '' : (allOk ? 'OK':'NOK');
-      resTD.className = (allOk===null) ? '' : (allOk ? 'ok-cell':'nok-cell');
+      resDiv.textContent = (allOk===null)?'':(allOk?'OK':'NOK');
+      resDiv.className   = (allOk===null)?'':(allOk?'ok-cell':'nok-cell');
     };
 
-    // wire
-    [valEdge, actYZ].forEach(i=> i.addEventListener('input', onChange));
-    diaContainer.querySelectorAll('input').forEach(i=> i.addEventListener('input', onChange));
+    [valEdge, actYZ].forEach(i=> i.addEventListener('input', recalc));
+    diaWrap.querySelectorAll('input').forEach(i=> i.addEventListener('input', recalc));
 
-    tr.append(tdWrap(valEdge));
-    tr.append(tdWrap(diaContainer));
-    tr.append(tdWrap(actYZ));
-    tr.append(tdWrap(offTD));
-    tr.append(tdWrap(resTD));
+    tr.append(td(valEdge));
+    tr.append(td(diaWrap));
+    tr.append(td(actYZ));
+    tr.append(td(offDiv));
+    tr.append(td(resDiv));
 
     tb.appendChild(tr);
   });
@@ -296,32 +379,99 @@ buildFormBtn.addEventListener('click', ()=>{
   blkT.appendChild(table);
   formArea.appendChild(blkT);
 
-  // Enable export
+  // ===== Dimension verification (extreme ends) =====
+  const blkD = block('Dimension verification for holes at extreme ends of FSM');
+  const sub = document.createElement('table'); sub.className='table';
+  sub.innerHTML = `
+    <thead>
+      <tr>
+        <th rowspan="2">X Axis</th>
+        <th rowspan="2">Web / Flange</th>
+        <th colspan="3">First holes of FSM - from front end</th>
+        <th colspan="3">Last holes of FSM - from rear end</th>
+      </tr>
+      <tr>
+        <th>Spec</th><th>Actual</th><th>offset</th>
+        <th>Spec</th><th>Actual</th><th>offset</th>
+      </tr>
+    </thead>
+  `;
+  const sbody = document.createElement('tbody');
+  const labels = ['PWX','PW','PWM','PFF','PFB'];
+  labels.forEach((lab, i)=>{
+    const tr = document.createElement('tr');
+    tr.append(td(roCell(i<3?'Web':(i===3?'Top Flange':'Bottom Flange'))));
+    tr.append(td(roCell(lab)));
+    // FIRST
+    const fSpec = roCell(extractNum(extreme.first.spec[i]));
+    const fAct  = input({className:'input inline', placeholder:'/'});
+    const fOff  = roCell(extractNum(extreme.first.offset[i]));
+    // LAST
+    const lSpec = roCell(extractNum(extreme.last.spec[i]));
+    const lAct  = input({className:'input inline', placeholder:'/'});
+    const lOff  = roCell(extractNum(extreme.last.offset[i]));
+
+    tr.append(td(fSpec)); tr.append(td(fAct)); tr.append(td(fOff));
+    tr.append(td(lSpec)); tr.append(td(lAct)); tr.append(td(lOff));
+    sbody.appendChild(tr);
+  });
+  sub.appendChild(sbody);
+  blkD.appendChild(sub);
+  formArea.appendChild(blkD);
+
+  // ===== Visual / Binary checks =====
+  const blkV = block('Visual / Binary Checks');
+  const grid = document.createElement('div'); grid.className='binary';
+  const items = [
+    'Part no location','Profile cutting','Kink Bending','Machine Error (YES / NO)',
+    'Punch Break','Length Variation','Slug mark','Part No. Legibility',
+    'Radius crack','Holes Burr','Line mark','Pit Mark'
+  ];
+  // show as pairs (OK / NOK)
+  items.forEach(label=>{
+    const wrap = document.createElement('div'); wrap.style.margin='6px 0';
+    const span = document.createElement('span'); span.textContent = label + ' : ';
+    const ok = document.createElement('button'); ok.textContent='OK/YES';
+    const nok = document.createElement('button'); nok.textContent='NOK/NO';
+    ok.addEventListener('click',()=>{ ok.classList.add('on-ok'); nok.classList.remove('on-nok'); });
+    nok.addEventListener('click',()=>{ nok.classList.add('on-nok'); ok.classList.remove('on-ok'); });
+    wrap.append(span, ok, nok);
+    grid.appendChild(wrap);
+  });
+  blkV.appendChild(grid);
+  formArea.appendChild(blkV);
+
+  // ===== Remarks + Signatures =====
+  const blkR = block('Remarks / Details of issue');
+  const ta = document.createElement('textarea'); ta.className='input'; ta.style.minHeight='90px';
+  blkR.appendChild(ta);
+  const rowS = row();
+  const left = col(`<div class="small">Prodn Incharge</div>`); left.append(input({className:'input', id:'prodIncharge'}));
+  const right= col(`<div class="small">QC Inspector</div>`);  right.append(input({className:'input', id:'qcInspector'}));
+  rowS.append(left,right); blkR.append(rowS);
+  formArea.appendChild(blkR);
+
   exportPdfBtn.disabled = false;
-  show("Editable form ready. Enter Actuals, then Export to PDF.");
+  show('Form created. Enter actuals and export to PDF.');
 });
 
 /* Export to PDF */
 exportPdfBtn.addEventListener('click', async ()=>{
-  exportPdfBtn.disabled = true;
-  exportPdfBtn.textContent = "Generating PDF...";
+  exportPdfBtn.disabled = true; exportPdfBtn.textContent='Generating PDF...';
   try{
     const clone = document.createElement('div');
-    clone.style.width="900px"; clone.style.padding="12px";
-    // header
+    clone.style.width='900px'; clone.style.padding='12px';
     const hdr = document.querySelector('header').cloneNode(true);
     clone.appendChild(hdr);
-
-    // content clone (inputs → spans)
     const fa = formArea.cloneNode(true);
-    fa.querySelectorAll('input').forEach(n=>{
+    fa.querySelectorAll('input, textarea, button').forEach(el=>{
+      if(el.tagName==='BUTTON'){ el.remove(); return; }
       const s = document.createElement('span');
-      s.textContent = n.value || (n.placeholder || '');
-      n.parentNode && n.parentNode.replaceChild(s, n);
+      s.textContent = el.value || el.placeholder || '';
+      el.parentNode && el.parentNode.replaceChild(s, el);
     });
     clone.appendChild(fa);
-
-    clone.style.position="fixed"; clone.style.left="-2000px";
+    clone.style.position='fixed'; clone.style.left='-2000px';
     document.body.appendChild(clone);
 
     const canvas = await html2canvas(clone, {scale:2, useCORS:true});
@@ -330,35 +480,33 @@ exportPdfBtn.addEventListener('click', async ()=>{
     const pageW = pdf.internal.pageSize.getWidth();
     const imgW = pageW - 20;
     const imgH = canvas.height * imgW / canvas.width;
-    const img = canvas.toDataURL('image/png');
-    pdf.addImage(img, 'PNG', 10, 10, imgW, imgH);
-    const now = new Date();
-    const fname = `${(parsed.partNumber||'PART')}_${(parsed.revision||'X')}_${(parsed.hand||'H')}_Inspection_${now.toISOString().slice(0,10)}.pdf`;
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, imgW, imgH);
+    const d = new Date();
+    const fname = `${parsed.partNumber||'PART'}_${parsed.revision||'X'}_${parsed.hand||'H'}_Inspection_${d.toISOString().slice(0,10)}.pdf`;
     pdf.save(fname);
-    show("PDF exported: " + fname);
+    show('PDF exported: '+fname);
   }catch(e){
     console.error(e);
-    alert("PDF export failed: " + e.message);
+    alert('PDF export failed: '+e.message);
   }finally{
-    exportPdfBtn.disabled = false;
-    exportPdfBtn.textContent = "Export to PDF";
+    exportPdfBtn.disabled=false; exportPdfBtn.textContent='Export to PDF';
   }
 });
 
-/* Tiny DOM helpers */
-function mkInput({value="", placeholder="", className="input", readOnly=false, id}={}){
-  const i = document.createElement('input');
-  i.type = 'text'; i.value = value ?? ""; i.placeholder = placeholder;
-  i.className = className; i.readOnly = !!readOnly;
-  if(id) i.id = id;
+/* DOM helpers */
+function block(title){
+  const d = document.createElement('div'); d.className='form-block';
+  const h = document.createElement('div'); h.className='block-title'; h.textContent = title;
+  d.appendChild(h); return d;
+}
+function row(){ const d=document.createElement('div'); d.className='form-row'; return d; }
+function col(html){ const d=document.createElement('div'); d.className='col'; if(html) d.innerHTML=html; return d; }
+function input({value="", placeholder="", className="input", readOnly=false, id, ...attrs}={}){
+  const i=document.createElement('input'); i.type='text'; i.value=value??""; i.placeholder=placeholder; i.className=className; i.readOnly=!!readOnly; if(id) i.id=id;
+  Object.entries(attrs).forEach(([k,v])=> i.setAttribute(k, v));
   return i;
 }
-function roCell(text){
-  const div = document.createElement('div'); div.textContent = text ?? "";
-  return div;
-}
-function tdWrap(inner){
-  const td = document.createElement('td');
-  if(inner instanceof Node) td.appendChild(inner); else td.textContent = inner ?? "";
-  return td;
-}
+function text(t){ return document.createTextNode(t); }
+function roCell(v){ const d=document.createElement('div'); d.textContent = v ?? ""; return d; }
+function td(inner){ const td=document.createElement('td'); if(inner instanceof Node) td.appendChild(inner); else td.textContent=inner??""; return td; }
+function extractNum(v){ return (v==null||v==="--") ? '' : (isFinite(parseFloat(v))?String(v):''); }
