@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Soenen Inspection – Excel</title>
+  <title>Soenen Patrol Inspection (Excel)</title>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -16,7 +16,7 @@
     <h1>SOENEN PATROL INSPECTION CHECK SHEET</h1>
     <div class="part-info">
       <span id="hdrPart">PART NUMBER / LEVEL / HAND : — / — / —</span>
-      &nbsp; | &nbsp;
+      &nbsp;&nbsp; | &nbsp;&nbsp;
       <span id="hdrFsmSpec">FSM LENGTH : — mm</span>
     </div>
   </div>
@@ -29,7 +29,7 @@
 <main>
   <section class="controls">
     <div>
-      <input id="fileInput" type="file" accept=".xlsx,.xls" />
+      <input id="fileInput" type="file" accept=".xlsx,.xls"/>
       <button id="parseExcelBtn">Load & Parse Excel</button>
       <button id="buildFormBtn" disabled>Create Editable Form</button>
     </div>
@@ -40,10 +40,10 @@
 
   <section id="preview" class="panel">
     <h2>Source Summary</h2>
-    <pre id="headerOut">Upload Excel and click "Load & Parse Excel".</pre>
+    <pre id="headerOut">Upload the macro sheet and click "Load & Parse Excel".</pre>
   </section>
 
-  <section id="formArea" class="panel"></section>
+  <section id="formArea" class="panel"><!-- dynamic --></section>
 
   <section id="messages" class="panel">
     <div id="warnings"></div>
