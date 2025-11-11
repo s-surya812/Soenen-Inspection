@@ -7,54 +7,46 @@
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-<header class="sheet-header">
-  <div class="header-left">
-    <img src="./images/Al_logo.png" alt="Ashok Leyland Logo"/>
-  </div>
-
-  <div class="header-center">
-    <h1>SOENEN PATROL INSPECTION CHECK SHEET</h1>
-    <div class="part-info">
-      <span id="hdrPart">PART NUMBER / LEVEL / HAND : — / — / —</span>
-      &nbsp;&nbsp; | &nbsp;&nbsp;
-      <span id="hdrFsmSpec">FSM LENGTH : — mm</span>
+  <header class="sheet-header">
+    <div class="header-left"><img src="./images/Al_logo.png" alt="Ashok Leyland"></div>
+    <div class="header-center">
+      <h1>SOENEN PATROL INSPECTION CHECK SHEET</h1>
+      <div class="part-info">
+        <span id="hdrPart">PART NUMBER / LEVEL / HAND : — / — / —</span>
+        &nbsp;&nbsp; | &nbsp;&nbsp;
+        <span id="hdrFsmSpec">FSM LENGTH : — mm</span>
+      </div>
     </div>
-  </div>
+    <div class="header-right"><div class="format-no">FORMAT NO: RLEF4907 / 11</div></div>
+  </header>
 
-  <div class="header-right">
-    <div class="format-no">FORMAT NO: RLEF4907 / 12</div>
-  </div>
-</header>
+  <main>
+    <section class="controls">
+      <div>
+        <input id="fileInput" type="file" accept=".xlsx,.xlsm,.xls"/>
+        <button id="parseExcelBtn">Load & Parse Excel</button>
+      </div>
+      <div class="actions">
+        <button id="buildFormBtn" disabled>Build Form</button>
+        <button id="exportPdfBtn" disabled>Export to PDF</button>
+      </div>
+    </section>
 
-<main>
-  <section class="controls">
-    <div>
-      <input id="fileInput" type="file" accept=".xlsx,.xls"/>
-      <button id="parseExcelBtn">Load & Parse Excel</button>
-      <button id="buildFormBtn" disabled>Create Editable Form</button>
-    </div>
-    <div class="actions">
-      <button id="exportPdfBtn" disabled>Export to PDF</button>
-    </div>
-  </section>
+    <section id="preview" class="panel">
+      <h2>Source Summary</h2>
+      <pre id="headerOut">Upload Excel and click "Load & Parse Excel".</pre>
+    </section>
 
-  <section id="preview" class="panel">
-    <h2>Source Summary</h2>
-    <pre id="headerOut">Upload the macro sheet and click "Load & Parse Excel".</pre>
-  </section>
+    <section id="formArea" class="panel"><!-- built dynamically --></section>
 
-  <section id="formArea" class="panel"><!-- dynamic --></section>
+    <section id="messages" class="panel"><div id="warnings"></div></section>
+  </main>
 
-  <section id="messages" class="panel">
-    <div id="warnings"></div>
-  </section>
-</main>
+  <!-- libs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-<!-- libs -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
