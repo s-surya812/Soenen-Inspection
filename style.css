@@ -1,49 +1,61 @@
-/* HEADER */
+/* Header */
 header.sheet-header{
   position:sticky;top:0;z-index:10;
   display:flex;justify-content:space-between;align-items:center;
-  border-bottom:2px solid #000;padding:8px 12px;background:#fff
+  padding:8px 12px;border-bottom:2px solid #000;background:#fff;
 }
-.header-left{flex:1}.header-center{flex:2;text-align:center}.header-right{flex:1;text-align:right}
 .header-left img{height:50px;width:auto}
-.header-center h1{font-size:18px;margin:0;font-weight:700;text-transform:uppercase}
-.part-info{font-size:13px;margin-top:3px}
-.format-no{font-weight:700;font-size:13px}
+.header-center{flex:2;text-align:center}
+.header-center h1{margin:0;font-size:18px;font-weight:700}
+.part-info{font-size:13px;margin-top:4px}
+.header-right{font-weight:600}
 
-/* BASE */
+/* Layout */
 :root{
-  --accent:#005fcc;--green:#076a07;--green-fill:#dfffe0;
-  --red:#cc0000;--pink-fill:#ffd9d9;--warn:#ff8c00;--warn-fill:#fff6cc;
-  --font:"Segoe UI",Roboto,Arial,sans-serif
+  --border:#000;
+  --bg:#fff;
+  --table-head:#efefef;
+  --ok:#006400; --okfill:#ccffcc;
+  --nok:#c40000; --nokfill:#ffd6d6;
+  --warn:#a66500; --warnfill:#fff4cc;
+  --font: "Segoe UI", Roboto, Arial, sans-serif;
 }
 *{box-sizing:border-box}
-body{font-family:var(--font);margin:0;color:#111;background:#fafafa}
-main{padding:16px;display:grid;gap:16px}
-.controls{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.controls button{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
-.panel{background:#fff;padding:12px;border:1px solid #e6e6e6;border-radius:6px}
-#headerOut{white-space:pre-wrap}
+body{margin:0;font-family:var(--font);background:#fafafa;color:#111}
+main{display:grid;gap:16px;padding:16px}
+.controls{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.controls button{
+  background:#0b63d1;color:#fff;border:0;border-radius:6px;padding:8px 12px;cursor:pointer
+}
+.panel{background:#fff;border:1px solid #e5e5e5;border-radius:6px;padding:12px}
 
-/* FORM */
-.form-block{border:1px solid #bbb;padding:10px;border-radius:6px;background:#fff;margin-bottom:12px}
-.block-title{font-weight:700;margin-bottom:6px}
+/* “Excel-like” blocks */
+.form-block{border:1px solid #999;background:#fff;border-radius:4px;margin-top:8px;padding:8px}
+.small{font-size:12px;color:#111}
 
+/* Header form rows */
 .form-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;margin:8px 0}
-.col{flex:1 1 48%;min-width:280px}
-.small{font-size:12px;color:#333}
-.input{padding:6px;border:1px solid #888;border-radius:4px;width:100%}
-.inline{display:inline-block;min-width:80px;width:auto;margin-right:6px}
+.form-row .col{flex:1 1 48%;min-width:300px}
 
-/* TABLE */
+/* Inputs */
+.input, .input-small{
+  width:100%;padding:4px 6px;border:1px solid #666;border-radius:3px;background:#fff
+}
+.inline{width:auto;min-width:80px;display:inline-block;margin-right:6px}
+
+/* Grid table */
 .table{width:100%;border-collapse:collapse;margin-top:8px}
-.table th,.table td{border:1px solid #000;padding:6px;text-align:center;font-size:13px}
-.table th{background:#efefef;font-weight:700}
+.table th,.table td{border:1px solid var(--border);padding:6px;text-align:center;font-size:13px;background:#fff}
+.table th{background:var(--table-head);font-weight:700}
 
-/* RESULT COLORS */
-.ok-cell{color:var(--green);background:var(--green-fill);font-weight:600}
-.nok-cell{color:var(--red);background:var(--pink-fill);font-weight:600}
+/* Results */
+.ok-cell{color:var(--ok);background:var(--okfill);font-weight:600}
+.nok-cell{color:var(--nok);background:var(--nokfill);font-weight:600}
+.warn{color:var(--warn);background:var(--warnfill)}
 
-/* BINARY BUTTONS */
-.binary button{padding:4px 8px;border:1px solid #aaa;border-radius:4px;background:#f6f6f6;cursor:pointer;margin-right:6px}
-.binary .on-ok{background:var(--green-fill);color:var(--green);border-color:var(--green)}
-.binary .on-nok{background:var(--pink-fill);color:var(--red);border-color:var(--red)}
+/* Remarks */
+#remarks{width:100%;min-height:80px;border:1px solid #000;padding:8px;font-size:14px;resize:vertical}
+
+/* Footer */
+.export-footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.btn-disabled{opacity:.55;pointer-events:none}
